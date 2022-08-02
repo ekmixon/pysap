@@ -110,7 +110,7 @@ def parse_target_hosts(target_hosts, target_ports):
 
 def route_test(rhost, rport, thost, tport, talk_mode, router_version):
 
-    logging.info("[*] Routing connections to %s:%s" % (thost, tport))
+    logging.info(f"[*] Routing connections to {thost}:{tport}")
 
     # Build the route to the target host passing through the SAP Router
     route = [SAPRouterRouteHop(hostname=rhost,
@@ -142,9 +142,7 @@ def route_test(rhost, rport, thost, tport, talk_mode, router_version):
 def main():
     options = parse_options()
 
-    level = logging.INFO
-    if options.verbose:
-        level = logging.DEBUG
+    level = logging.DEBUG if options.verbose else logging.INFO
     logging.basicConfig(level=level, format='%(message)s')
 
     logging.info("[*] Connecting to SAP Router %s:%d (talk mode %s)" % (options.remote_host,
@@ -164,11 +162,11 @@ def main():
                          "ni": ROUTER_TALK_MODE_NI_MSG_IO}[options.talk_mode]
 
     results = []
-    for (host, port) in parse_target_hosts(options.target_hosts, options.target_ports):
+    for host, port in parse_target_hosts(options.target_hosts, options.target_ports):
         status = route_test(options.remote_host, options.remote_port, host, port,
                             options.talk_mode, options.router_version)
         if options.verbose:
-            logging.info("[*] Status of %s:%s: %s" % (host, port, status))
+            logging.info(f"[*] Status of {host}:{port}: {status}")
         if status == "open":
             results.append((host, port))
 

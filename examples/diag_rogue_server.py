@@ -53,7 +53,7 @@ class SAPDiagClient(SAPNIClient):
         self.init = init
 
     def __str__(self):
-        return "SAP Diag Client: Terminal=%s Init=%s" % (self.terminal, self.init)
+        return f"SAP Diag Client: Terminal={self.terminal} Init={self.init}"
 
 
 class SAPDiagServerHandler(SAPNIServerHandler):
@@ -116,25 +116,74 @@ class SAPDiagServerHandler(SAPNIServerHandler):
         ]
 
     def make_error_screen(self, message):
-        return [SAPDiagItem(item_value=support_data_sapnw_702, item_type=16, item_id=6, item_sid=17),
-                SAPDiagItem(item_value='808D17E1E8DBF1D0B43C000C297D2E11', item_type=16, item_id=6, item_sid=33),
-                SAPDiagItem(item_value='\x01\x80\x8d\x17\xe1\xe8\xdb\xf1\xd2\xb4<\x00\x0c)}.\x11\x01', item_type=16, item_id=6, item_sid=31),
-                SAPDiagItem(item_value=self.sid, item_type=16, item_id=6, item_sid=2),
-                SAPDiagItem(item_value=self.client, item_type=16, item_id=6, item_sid=12),
-                SAPDiagItem(item_value=self.hostname, item_type=16, item_id=6, item_sid=33),
-                SAPDiagItem(item_value='TRADESHOW\x00', item_type=16, item_id=6, item_sid=37),
-                SAPDiagItem(item_value='702\x007200\x0070\x00', item_type=16, item_id=6, item_sid=41),
-                SAPDiagItem(item_value='SAP R/3 (1) %s     ' % self.sid, item_type=16, item_id=12, item_sid=10),
-                SAPDiagItem(item_value='SAPMSYST                                ', item_type=16, item_id=6, item_sid=15),
-                SAPDiagItem(item_value='0020                ', item_type=16, item_id=6, item_sid=16),
-                SAPDiagItem(item_value='SAPMSYST                                ', item_type=16, item_id=6, item_sid=13),
-                SAPDiagItem(item_value='0020', item_type=16, item_id=6, item_sid=14),
-                SAPDiagItem(item_value=self.session_title, item_type=16, item_id=12, item_sid=9),
-                SAPDiagItem(item_value=message, item_type=16, item_id=6, item_sid=11),
-                ]
+        return [
+            SAPDiagItem(
+                item_value=support_data_sapnw_702,
+                item_type=16,
+                item_id=6,
+                item_sid=17,
+            ),
+            SAPDiagItem(
+                item_value='808D17E1E8DBF1D0B43C000C297D2E11',
+                item_type=16,
+                item_id=6,
+                item_sid=33,
+            ),
+            SAPDiagItem(
+                item_value='\x01\x80\x8d\x17\xe1\xe8\xdb\xf1\xd2\xb4<\x00\x0c)}.\x11\x01',
+                item_type=16,
+                item_id=6,
+                item_sid=31,
+            ),
+            SAPDiagItem(item_value=self.sid, item_type=16, item_id=6, item_sid=2),
+            SAPDiagItem(
+                item_value=self.client, item_type=16, item_id=6, item_sid=12
+            ),
+            SAPDiagItem(
+                item_value=self.hostname, item_type=16, item_id=6, item_sid=33
+            ),
+            SAPDiagItem(
+                item_value='TRADESHOW\x00', item_type=16, item_id=6, item_sid=37
+            ),
+            SAPDiagItem(
+                item_value='702\x007200\x0070\x00',
+                item_type=16,
+                item_id=6,
+                item_sid=41,
+            ),
+            SAPDiagItem(
+                item_value=f'SAP R/3 (1) {self.sid}     ',
+                item_type=16,
+                item_id=12,
+                item_sid=10,
+            ),
+            SAPDiagItem(
+                item_value='SAPMSYST                                ',
+                item_type=16,
+                item_id=6,
+                item_sid=15,
+            ),
+            SAPDiagItem(
+                item_value='0020                ',
+                item_type=16,
+                item_id=6,
+                item_sid=16,
+            ),
+            SAPDiagItem(
+                item_value='SAPMSYST                                ',
+                item_type=16,
+                item_id=6,
+                item_sid=13,
+            ),
+            SAPDiagItem(item_value='0020', item_type=16, item_id=6, item_sid=14),
+            SAPDiagItem(
+                item_value=self.session_title, item_type=16, item_id=12, item_sid=9
+            ),
+            SAPDiagItem(item_value=message, item_type=16, item_id=6, item_sid=11),
+        ]
 
     def logoff(self):
-        print("[*] Logging off the client %s" % str(self.client_address))
+        print(f"[*] Logging off the client {str(self.client_address)}")
         try:
             self.request.send(SAPDiag(com_flag_TERM_EOP=1, com_flag_TERM_EOC=1, compress=0))
             self.request.close()
@@ -144,10 +193,10 @@ class SAPDiagServerHandler(SAPNIServerHandler):
 
     def handle_data(self):
         if self.client_address in self.server.clients and self.server.clients[self.client_address].init:
-            print("[*] Already initialized client %s" % str(self.client_address))
+            print(f"[*] Already initialized client {str(self.client_address)}")
             self.handle_msg()
         else:
-            print("[*] Uninitialized client %s" % str(self.client_address))
+            print(f"[*] Uninitialized client {str(self.client_address)}")
             self.handle_init()
 
     def handle_init(self):
@@ -156,48 +205,45 @@ class SAPDiagServerHandler(SAPNIServerHandler):
         if SAPDiagDP in self.packet:
             self.server.clients[self.client_address].init = True
             self.server.clients[self.client_address].terminal = self.packet[SAPDiagDP].terminal
-            print("[*] Client %s set to initialized (terminal: %s)" % (str(self.client_address),
-                                                                       self.server.clients[self.client_address].terminal))
+            print(
+                f"[*] Client {str(self.client_address)} set to initialized (terminal: {self.server.clients[self.client_address].terminal})"
+            )
+
             self.request.send(SAPDiag(compress=0, message=self.make_login_screen()))
         else:
-            print("[-] Error during initialization of client %s" % str(self.client_address))
+            print(f"[-] Error during initialization of client {str(self.client_address)}")
             self.logoff()
 
     def handle_msg(self):
-        print("[*] Received message from client %s" % str(self.client_address))
+        print(f"[*] Received message from client {str(self.client_address)}")
         diag = self.packet[SAPDiag]
 
         # Handle exit transaction (OK CODE = /i)
         if len(diag.get_item("APPL", "VARINFO", "OKCODE")) > 0 and diag.get_item("APPL", "VARINFO", "OKCODE")[0].item_value == "/i":
-            print("[*] Windows closed by the client %s" % str(self.client_address))
+            print(f"[*] Windows closed by the client {str(self.client_address)}")
             self.logoff()
 
-        # Handle events (UI EVENT SOURCE)
         elif diag.get_item("APPL", "UI_EVENT", "UI_EVENT_SOURCE"):
-            print("[*] UI Event sent by the client %s" % str(self.client_address))
+            print(f"[*] UI Event sent by the client {str(self.client_address)}")
             ui_event_source = diag.get_item("APPL", "UI_EVENT", "UI_EVENT_SOURCE")[0].item_value
 
             # Handle function key
             if ui_event_source.valid_functionkey_data:
                 # Handle logoff event
                 if ui_event_source.event_type == 7 and ui_event_source.control_type == 10 and ui_event_source.event_data == 15:
-                    print("[*] Logoff sent by the client %s" % str(self.client_address))
+                    print(f"[*] Logoff sent by the client {str(self.client_address)}")
                     self.logoff()
 
-                # Handle enter event
                 elif ui_event_source.event_type == 7 and ui_event_source.control_type == 10 and ui_event_source.event_data == 0:
-                    print("[*] Enter sent by the client %s" % str(self.client_address))
+                    print(f"[*] Enter sent by the client {str(self.client_address)}")
 
-            # Handle menu option
             elif ui_event_source.valid_menu_pos:
-                print("[*] Menu event sent by the client %s" % str(self.client_address))
+                print(f"[*] Menu event sent by the client {str(self.client_address)}")
 
             else:
-                print("[*] Other event sent by the client %s" % str(self.client_address))
+                print(f"[*] Other event sent by the client {str(self.client_address)}")
 
-        # Handle login request (DYNT Atom == \x00)
-        atoms = diag.get_item(["APPL", "APPL4"], "DYNT", "DYNT_ATOM")
-        if atoms:
+        if atoms := diag.get_item(["APPL", "APPL4"], "DYNT", "DYNT_ATOM"):
             print("[*] Login request sent by the client %s" % str(self.client_address))
             # Print the Atom items information
             print("[*] Input fields:")
@@ -215,7 +261,6 @@ class SAPDiagServerHandler(SAPNIServerHandler):
             print("[*] Sending error message to client %s" % str(self.client_address))
             self.request.send(SAPDiag(compress=1, message=self.make_error_screen("Thanks for your credentials !!!")))
 
-        # Otherwise we send an error message
         else:
             print("[*] Sending error message to client %s" % str(self.client_address))
             try:
@@ -258,9 +303,7 @@ def parse_options():
     misc = parser.add_argument_group("Misc options")
     misc.add_argument("-v", "--verbose", dest="verbose", action="store_true", help="Verbose output")
 
-    options = parser.parse_args()
-
-    return options
+    return parser.parse_args()
 
 
 # Main function

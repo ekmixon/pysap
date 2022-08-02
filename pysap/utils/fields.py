@@ -89,17 +89,11 @@ class MutablePacketField(StrLenField):
 
     def i2m(self, pkt, i):
         cls = self.get_class(pkt)
-        if cls is not None:
-            return str(i)
-        else:
-            return StrLenField.i2m(self, pkt, i)
+        return str(i) if cls is not None else StrLenField.i2m(self, pkt, i)
 
     def m2i(self, pkt, m):
         cls = self.get_class(pkt)
-        if cls is not None:
-            return cls(m)
-        else:
-            return StrLenField.m2i(self, pkt, m)
+        return cls(m) if cls is not None else StrLenField.m2i(self, pkt, m)
 
 
 class StrNullFixedLenField(StrFixedLenField):
@@ -108,10 +102,7 @@ class StrNullFixedLenField(StrFixedLenField):
     __slots__ = ["length_from", "max_length", "null_terminated"]
 
     def __init__(self, name, default, length=None, length_from=None, max_length=None, null_terminated=None):
-        if null_terminated:
-            self.null_terminated = null_terminated
-        else:
-            self.null_terminated = lambda pkt: True
+        self.null_terminated = null_terminated or (lambda pkt: True)
         self.max_length = max_length or 200
         StrFixedLenField.__init__(self, name, default, length=length, length_from=length_from)
 
@@ -237,9 +228,7 @@ class StrEncodedPaddedField(StrField):
 
     def getfield(self, pkt, s):
         l = s.find(self.padd)
-        if l < 0:
-            return "", s
-        return s[l + 1:], self.m2i(pkt, s[:l])
+        return ("", s) if l < 0 else (s[l + 1:], self.m2i(pkt, s[:l]))
 
 
 class PacketListStopField(PacketListField):

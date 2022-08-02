@@ -114,9 +114,7 @@ def print_table(clients):
 def main():
     options = parse_options()
 
-    level = logging.INFO
-    if options.verbose:
-        level = logging.DEBUG
+    level = logging.DEBUG if options.verbose else logging.INFO
     logging.basicConfig(level=level, format='%(message)s')
 
     response = False
@@ -138,7 +136,7 @@ def main():
             if len(options.info_password) > 19:
                 logging.info("[*] Password too long, truncated at 19 characters")
             p.adm_password = options.info_password
-            logging.info("[*] Requesting info using password %s" % p.adm_password)
+            logging.info(f"[*] Requesting info using password {p.adm_password}")
         else:
             logging.info("[*] Requesting info")
         response = True
@@ -154,7 +152,10 @@ def main():
     elif options.cancel:
         p.adm_command = 6
         p.adm_client_ids = list(map(int, options.cancel.split(",")))
-        logging.info("[*] Requesting a cancel of the route(s) with client id(s) %s" % p.adm_client_ids)
+        logging.info(
+            f"[*] Requesting a cancel of the route(s) with client id(s) {p.adm_client_ids}"
+        )
+
         response = True
 
     elif options.dump:
@@ -173,19 +174,28 @@ def main():
     elif options.set_peer:
         p.adm_command = 10
         p.adm_address_mask = options.set_peer
-        logging.info("[*] Request a set peer trace for the address mask %s" % p.adm_address_mask)
+        logging.info(
+            f"[*] Request a set peer trace for the address mask {p.adm_address_mask}"
+        )
+
         response = True
 
     elif options.clear_peer:
         p.adm_command = 11
         p.adm_address_mask = options.clear_peer
-        logging.info("[*] Request a clear peer trace for the address mask %s" % p.adm_address_mask)
+        logging.info(
+            f"[*] Request a clear peer trace for the address mask {p.adm_address_mask}"
+        )
+
         response = True
 
     elif options.trace_conn:
         p.adm_command = 12
         p.adm_client_ids = list(map(int, options.trace_conn.split(",")))
-        logging.info("[*] Requesting a connection trace with client id(s) %s" % p.adm_client_ids)
+        logging.info(
+            f"[*] Requesting a connection trace with client id(s) {p.adm_client_ids}"
+        )
+
         response = True
 
     else:
@@ -197,10 +207,7 @@ def main():
     logging.info("[*] Connected to the SAP Router %s:%d" % (options.remote_host, options.remote_port))
 
     # Retrieve the router version used by the server if not specified
-    if options.router_version:
-        p.version = options.router_version
-    else:
-        p.version = get_router_version(conn) or p.version
+    p.version = options.router_version or get_router_version(conn) or p.version
     logging.info("[*] Using SAP Router version %d" % p.version)
 
     # Send the router admin request
@@ -231,7 +238,6 @@ def main():
             else:
                 logging.error(router_response.err_text_value.error)
 
-        # Otherwise, print the packets sent by the SAP Router
         else:
             logging.info("[*] Response:\n")
 
@@ -245,11 +251,16 @@ def main():
                     # If the trace flag is set, add a mark
                     flag = "(*)" if client.flag_traced else "(+)" if client.flag_routed else ""
 
-                    fields = [str(client.id),
-                              client.address,
-                              "%s%s" % (flag, client.partner) if client.flag_routed else "(no partner)",
-                              client.service if client.flag_routed else "",
-                              saptimestamp_to_datetime(client.connected_on).ctime()]
+                    fields = [
+                        str(client.id),
+                        client.address,
+                        f"{flag}{client.partner}"
+                        if client.flag_routed
+                        else "(no partner)",
+                        client.service if client.flag_routed else "",
+                        saptimestamp_to_datetime(client.connected_on).ctime(),
+                    ]
+
                     clients.append(fields)
 
                 # Decode the second packet as server info
@@ -266,10 +277,8 @@ def main():
 
             # Show the plain packets returned
             try:
-                raw_response = conn.recv()
-                while raw_response:
+                while raw_response := conn.recv():
                     logging.info(raw_response.payload)
-                    raw_response = conn.recv()
             except error:
                 pass
 

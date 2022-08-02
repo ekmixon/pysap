@@ -70,7 +70,10 @@ class PySAPGenPSE(object):
         description = "Basic and experimental implementation of sapgenpse tool."
 
         parser = ArgumentParser(usage=pysapgenpse_usage, description=description, epilog=pysap.epilog)
-        parser.add_argument("--version", action="version", version="%(prog)s {}".format(pysap.__version__))
+        parser.add_argument(
+            "--version", action="version", version=f"%(prog)s {pysap.__version__}"
+        )
+
 
         # Commands
         parser.add_argument("-c", dest="command", help="Command", choices=PySAPGenPSE.commands)
@@ -142,9 +145,12 @@ class PySAPGenPSE(object):
         try:
             with open(filename) as f:
                 obj = cls(f.read())
-            self.logger.info("pysapgenpse: Reading {} file '{}'".format(type, filename))
+            self.logger.info(f"pysapgenpse: Reading {type} file '{filename}'")
         except IOError as e:
-            self.logger.error("pysapgenpse: Error reading {} file '{}' ({})".format(type, filename, e.message))
+            self.logger.error(
+                f"pysapgenpse: Error reading {type} file '{filename}' ({e.message})"
+            )
+
             return None
 
         return obj
@@ -167,14 +173,20 @@ class PySAPGenPSE(object):
         try:
             pse = self.open_file(options.filename, SAPPSEFile, "PSE")
         except Exception:
-            self.logger.error("pysapgenpse: Unable to read certificates in PSE file {}\n".format(options.filename))
+            self.logger.error(
+                f"pysapgenpse: Unable to read certificates in PSE file {options.filename}\n"
+            )
+
             return
 
         if pse is None or not pse.enc_cont:
-            self.logger.error("pysapgenpse: No encrypted content found in file {}".format(options.filename))
+            self.logger.error(
+                f"pysapgenpse: No encrypted content found in file {options.filename}"
+            )
+
 
         plain = pse.decrypt(options.pin)
-        self.logger.info("Decrypted PSE, {} bytes".format(len(plain)))
+        self.logger.info(f"Decrypted PSE, {len(plain)} bytes")
 
         self.write_output(options.output, plain)
 
@@ -182,7 +194,6 @@ class PySAPGenPSE(object):
         """Implements operations on SSO-credentials related files.
         """
 
-        # If no filename was specified and SECUDIR is set, use as default
         if not options.filename:
             if "SECUDIR" in environ:
                 options.filename = join(environ["SECUDIR"], "cred_v2")
@@ -201,12 +212,18 @@ class PySAPGenPSE(object):
         try:
             cred_v2 = self.open_file(options.filename, SAPCredv2, "credentials")
         except Exception:
-            self.logger.error("pysapgenpse: Unable to read credentials in file {}\n".format(options.filename))
+            self.logger.error(
+                f"pysapgenpse: Unable to read credentials in file {options.filename}\n"
+            )
+
             return
 
         # Validate that there are credentials there
         if not (cred_v2 and cred_v2.creds):
-            self.logger.error("pysapgenpse: No credentials found in file {}\n".format(options.filename))
+            self.logger.error(
+                f"pysapgenpse: No credentials found in file {options.filename}\n"
+            )
+
             return
 
         # List each credential and decrypt it if required
@@ -217,24 +234,29 @@ class PySAPGenPSE(object):
             pse_path = cred.pse_file_path
             lps = cred.lps_type_str
 
-            self.logger.info("\n {} (LPS:{}): {}".format(i, lps, cn))
+            self.logger.info(f"\n {i} (LPS:{lps}): {cn}")
             # We're not yet parsing the LPS status of the PSE so it's reported as N/A
-            self.logger.info("\t (LPS:N/A): {}".format(pse_path))
+            self.logger.info(f"\t (LPS:N/A): {pse_path}")
 
-            self.logger.debug("\t\t Credential cipher format version {}, algorithm {}".format(
-                cred.cipher_format_version, cipher_algorithms[cred.cipher_algorithm]))
+            self.logger.debug(
+                f"\t\t Credential cipher format version {cred.cipher_format_version}, algorithm {cipher_algorithms[cred.cipher_algorithm]}"
+            )
+
 
             # Try to decrypt if specified
             if options.decrypt and options.username and (options.number is None or options.number == i):
                 try:
                     self.decrypt_cred(cred, options.username, options.output, options.decrypt_provider)
                 except Exception as e:
-                    self.logger.error("pysapgenpse: Error trying to decrypt with username '{}'".format(options.username))
+                    self.logger.error(
+                        f"pysapgenpse: Error trying to decrypt with username '{options.username}'"
+                    )
+
                     self.logger.error(e)
 
             i += 1
 
-        self.logger.info("\n\n {} readable SSO-Credentials available\n".format(i))
+        self.logger.info(f"\n\n {i} readable SSO-Credentials available\n")
 
     def decrypt_cred(self, cred, username, output_filename=None, decrypt_provider=True):
         """Decrypts a given credential and writes the output to a file.
@@ -258,19 +280,21 @@ class PySAPGenPSE(object):
             try:
                 pin = plain.decrypt_provider(cred)
             except Exception as e:
-                self.logger.error("pysapgenpse: Unable to decrypt using the provider {} ({}), writing plain blob".format(
-                    plain.option1.val, e.message))
+                self.logger.error(
+                    f"pysapgenpse: Unable to decrypt using the provider {plain.option1.val} ({e.message}), writing plain blob"
+                )
+
                 pin = plain.pin.val
         else:
             pin = plain.pin.val
 
-        self.logger.info("\t\t PIN:\t\t{}".format(pin))
+        self.logger.info(f"\t\t PIN:\t\t{pin}")
         if plain.option1:
-            self.logger.debug("\t\t Options:\t{}".format(plain.option1.val))
+            self.logger.debug(f"\t\t Options:\t{plain.option1.val}")
         if plain.option2:
-            self.logger.debug("\t\t\t\t{}".format(plain.option2.val))
+            self.logger.debug(f"\t\t\t\t{plain.option2.val}")
         if plain.option3:
-            self.logger.debug("\t\t\t\t{}".format(plain.option3.val))
+            self.logger.debug(f"\t\t\t\t{plain.option3.val}")
         self.write_output(output_filename, pin)
 
     def write_output(self, output_filename, output):
@@ -285,7 +309,7 @@ class PySAPGenPSE(object):
         if output_filename:
             with open(output_filename, "wb") as output_file:
                 output_file.write(output)
-            self.logger.info("pysapgenpse: Output written to file '{}'".format(output_filename))
+            self.logger.info(f"pysapgenpse: Output written to file '{output_filename}'")
 
 
 if __name__ == "__main__":

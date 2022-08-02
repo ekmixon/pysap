@@ -280,23 +280,21 @@ class SAPPSEFile(ASN1_Packet):
 
         # Decrypt the encryption key using the LPS method
         cipher = SAPLPSCipher(self.enc_cont.encrypted_pin.val)
-        log_pse.debug("Obtained LPS cipher object (version={}, lps={})".format(cipher.version,
-                                                                               cipher.lps_type))
+        log_pse.debug(
+            f"Obtained LPS cipher object (version={cipher.version}, lps={cipher.lps_type})"
+        )
+
         key = cipher.decrypt()
 
-        # Choose the proper algorithms and values according to the algorithm ID
-        if self.enc_cont.algorithm_identifier.alg_id == NIST_ALGORITHM_AES_256_CBC:
-            algorithm = algorithms.AES
-            mode = modes.CBC
-            key, iv = key[:32], key[32:]
-        else:
+        if self.enc_cont.algorithm_identifier.alg_id != NIST_ALGORITHM_AES_256_CBC:
             raise Exception("Invalid PBE algorithm")
 
+        algorithm = algorithms.AES
+        mode = modes.CBC
+        key, iv = key[:32], key[32:]
         # Decrypt the cipher text with the derived key and IV
         decryptor = Cipher(algorithm(key), mode(iv), backend=default_backend()).decryptor()
-        plain = decryptor.update(self.enc_cont.cipher_text.val) + decryptor.finalize()
-
-        return plain
+        return decryptor.update(self.enc_cont.cipher_text.val) + decryptor.finalize()
 
     def decrypt_non_lps(self, pin):
         """Decrypts a non-LPS encrypted PSE file given a provided PIN. Implements PKCS12 PBE1
@@ -339,7 +337,4 @@ class SAPPSEFile(ASN1_Packet):
             if encrypted_pin != self.enc_cont.encrypted_pin.val:
                 raise ValueError("Invalid PIN supplied")
 
-        # Decrypt and parse the cipher text
-        plain_text = pbes.decrypt(cipher_text)
-
-        return plain_text
+        return pbes.decrypt(cipher_text)

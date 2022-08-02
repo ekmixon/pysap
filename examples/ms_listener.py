@@ -92,7 +92,7 @@ def main():
     print("[*] Sending login packet")
     response = conn.sr(p)[SAPMS]
 
-    print("[*] Login performed, server string: %s" % response.fromname)
+    print(f"[*] Login performed, server string: {response.fromname}")
 
     print("[*] Listening to server messages")
     try:

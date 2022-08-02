@@ -230,8 +230,7 @@ class PySAPRoutedStreamSocketTest(unittest.TestCase):
         self.assertEqual(packet[SAPNI].payload.load[4:], self.test_string)
 
         # Test using a route string
-        route = "/H/%s/S/%s/H/10.0.0.1/S/3200" % (self.test_address,
-                                                  self.test_port)
+        route = f"/H/{self.test_address}/S/{self.test_port}/H/10.0.0.1/S/3200"
         self.client = SAPRoutedStreamSocket.get_nisocket(route=route,
                                                          router_version=40)
 

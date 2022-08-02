@@ -92,7 +92,7 @@ def main():
     print("[*] Sending login packet:")
     response = conn.sr(p)[SAPMS]
 
-    print("[*] Login OK, Server string: %s" % response.fromname)
+    print(f"[*] Login OK, Server string: {response.fromname}")
     server_string = response.fromname
 
     # Send a Dump Info packet for each possible Dump

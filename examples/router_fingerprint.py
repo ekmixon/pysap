@@ -182,11 +182,7 @@ class FingerprintDB(object):
     def add_fingerprint(self, new_fingerprint, version_info):
         with open(new_fingerprint, 'r') as f:
             new_fingerprint = json.load(f)
-        if version_info:
-            version_info = json.loads(version_info)
-        else:
-            version_info = {}
-
+        version_info = json.loads(version_info) if version_info else {}
         for target in fingerprint_targets:
             if target in new_fingerprint:
                 if target not in self.fingerprints_db:
@@ -220,9 +216,7 @@ class FingerprintDB(object):
 def main():
     options = parse_options()
 
-    level = logging.INFO
-    if options.verbose:
-        level = logging.DEBUG
+    level = logging.DEBUG if options.verbose else logging.INFO
     logging.basicConfig(level=level, format='%(message)s')
 
     logging.info("[*] Loading fingerprint database")
@@ -243,8 +237,7 @@ def main():
 
     # Trigger some errors and check with fingerprint db
     l = len(fingerprint_targets)
-    i = 1
-    for (target, packet) in list(fingerprint_targets.items()):
+    for i, (target, packet) in enumerate(list(fingerprint_targets.items()), start=1):
 
         logging.info("[*] (%d/%d) Fingerprint for packet '%s'" % (i, l, target))
 
@@ -252,33 +245,32 @@ def main():
         conn = SAPNIStreamSocket.get_nisocket(options.remote_host,
                                               options.remote_port,
                                               keep_alive=False)
-        if packet is None:  # Timeout error
-            error_text = conn.recv().err_text_value
-        else:
-            error_text = conn.sr(packet).err_text_value
+        error_text = (
+            conn.recv().err_text_value
+            if packet is None
+            else conn.sr(packet).err_text_value
+        )
 
-        matched = fingerprint_db.match_fingerprint(target, error_text)
-
-        if matched:
+        if matched := fingerprint_db.match_fingerprint(target, error_text):
             logging.info("[*] (%d/%d) Fingerprint for packet '%s' matched !" % (i, l, target))
             matches.append((target, matched))
         else:
             logging.info("[*] (%d/%d) Fingerprint for packet '%s' not matched" % (i, l, target))
             misses.append((target, error_text))
 
-        i += 1
-
     if matches:
         versions = []
         counts = {}
         logging.info("\n[*] Matched fingerprints (%d/%d):" % (len(matches), l))
-        for (target, fingerprints) in matches:
-            logging.info("[+] Request: %s" % target)
+        for target, fingerprints in matches:
+            logging.info(f"[+] Request: {target}")
             for fingerprint in fingerprints:
-                match = {}
-                for field in version_info_fields:
-                    if field in fingerprint:
-                        match[field] = fingerprint[field]
+                match = {
+                    field: fingerprint[field]
+                    for field in version_info_fields
+                    if field in fingerprint
+                }
+
                 if match not in versions:
                     counts[str(match)] = 0
                     versions.append(match)
@@ -292,8 +284,8 @@ def main():
 
     if misses:
         logging.info("\n[*] Non matched fingerprints (%d/%d):" % (len(misses), l))
-        for (target, _) in misses:
-            logging.info("[-] Request: %s" % target)
+        for target, _ in misses:
+            logging.info(f"[-] Request: {target}")
 
         logging.info("\n[-] Some error values where not found in the fingerprint database. "
                      "If you want to contribute submit a issue to https://github.com/SecureAuthCorp/pysap "

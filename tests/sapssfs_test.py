@@ -108,14 +108,14 @@ class PySAPSSFSDataTest(unittest.TestCase):
 
             # Now tamper with the data
             orginal_data = record.data
-            record.data = orginal_data + "AddedDataBytes"
+            record.data = f"{orginal_data}AddedDataBytes"
             self.assertFalse(record.valid)
             record.data = orginal_data
             self.assertTrue(record.valid)
 
             # Now tamper with the HMAC
             orginal_hmac = record.hmac
-            record.hmac = orginal_hmac[:-1] + "A"
+            record.hmac = f"{orginal_hmac[:-1]}A"
             self.assertFalse(record.valid)
             record.hmac = orginal_hmac
             self.assertTrue(record.valid)

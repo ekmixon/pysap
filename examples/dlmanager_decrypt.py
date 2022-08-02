@@ -153,9 +153,10 @@ def parse_java(f):
                     else:
                         assert False, cls['_name']
                     b = f.read(1)
-                assert b == '\x78', h(b) + ' ' + repr(f.read(30))  # TC_ENDBLOCKDATA
+                assert b == '\x78', f'{h(b)} {repr(f.read(30))}'
         handles[handle] = ('py', obj)
         return obj
+
     objs = []
     while 1:
         try:
@@ -165,7 +166,7 @@ def parse_java(f):
 
 
 def parse_config_file(filename, decrypt=False, serial_number=None):
-    print("[*] Opening DLManager config file: %s" % filename)
+    print(f"[*] Opening DLManager config file: {filename}")
 
     try:
         with open(filename, 'r') as fil:
@@ -185,7 +186,7 @@ def parse_config_file(filename, decrypt=False, serial_number=None):
             value = data[item]["maBuffer"]
             if value:
                 value = unwrap(value, decrypt, serial_number)
-        print("[*] Key=%s, Value=%s" % (item, value))
+        print(f"[*] Key={item}, Value={value}")
 
 
 def build_key(serial_number):
@@ -199,14 +200,14 @@ def decrypt(cipher_text, key):
     iv = "\x00" * 16
     decryptor = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend()).decryptor()
     plain_text = decryptor.update(cipher_text) + decryptor.finalize()
-    plain_text = plain_text[0:-ord(plain_text[-1])]     # Unpad the plain text
+    plain_text = plain_text[:-ord(plain_text[-1])]
     return plain_text
 
 
 def unwrap(value, encrypted=False, serial_number=None):
     pos = len(value)
     unwrapped = []
-    for i in range(len(value)):
+    for _ in range(len(value)):
         pos -= 1
         (item, ) = unpack(">i", value[pos])             # Unpack the int value
         item = item - 50 + pos                          # Apply the transformation
@@ -216,7 +217,7 @@ def unwrap(value, encrypted=False, serial_number=None):
     if encrypted:
         cipher_text = b"".join([pack(">b", x) for x in unwrapped])
         key = build_key(serial_number)
-        print("[*] Decrypt using key: %s" % key)
+        print(f"[*] Decrypt using key: {key}")
         unwrapped = decrypt(cipher_text, key)
         if len(unwrapped) == 0:
             print("[-] Decryption failed. Maybe used a wrong serial number?")
@@ -274,7 +275,7 @@ def main():
         print("[*] Trying to retrieve the machine's serial number")
         options.serial_number = retrieve_serial_number()
         options.encrypted = True
-        print("[*] Retrieved serial number: %s" % options.serial_number)
+        print(f"[*] Retrieved serial number: {options.serial_number}")
 
     if options.encrypted and Cipher is None:
         parser.error("[-] Cryptography library required to decrypt not found !")

@@ -56,12 +56,11 @@ class BaseConsole (Cmd, object):
             options_dict = vars(self.options)
             self._print("Configuration options:")
             for option, value in list(options_dict.items()):
-                self._print("[" + option + "] = " + str(value))
+                self._print(f"[{option}] = {str(value)}")
 
             self._print("Run-time options:")
             for option in list(self.runtimeoptions.keys()):
-                self._print("[" + option + "] = " + str(self.runtimeoptions[option]))
-        # Set a run-time option
+                self._print(f"[{option}] = {str(self.runtimeoptions[option])}")
         else:
             args = args.split(" ", 1)
             if len(args) == 2:
@@ -76,10 +75,15 @@ class BaseConsole (Cmd, object):
                 self.do_help("options")
 
     def complete_options(self, text, line, begidx, endidx):
-        if not text:     # Complete list of run-time options
-            return list(self.runtimeoptions.keys())
-        else:        # Options starting with text
-            return [option for option in list(self.runtimeoptions.keys()) if option.startswith(text)]
+        return (
+            [
+                option
+                for option in list(self.runtimeoptions.keys())
+                if option.startswith(text)
+            ]
+            if text
+            else list(self.runtimeoptions.keys())
+        )
 
     def do_script(self, args):
         """Runs a script file."""
@@ -90,7 +94,7 @@ class BaseConsole (Cmd, object):
             try:
                 scriptfile = open(args, 'r')
                 for line in scriptfile:
-                    if not line[0] in ["\n", "#"]:
+                    if line[0] not in ["\n", "#"]:
                         self.precmd(line)
                         self.onecmd(line)
             except IOError:
@@ -106,7 +110,7 @@ class BaseConsole (Cmd, object):
             self._print("\n".join("\t| ".join([str(col).strip() for col in line]).expandtabs(20) for line in table))
 
     def _print(self, string=""):
-        print(str(string))
+        print(string)
         self._log(string)
 
     def _log(self, string=""):
@@ -118,26 +122,26 @@ class BaseConsole (Cmd, object):
             self._print(string)
 
     def _error(self, string):
-        self._print("Error: " + string)  # To console if log file specified
+        self._print(f"Error: {string}")
 
     # Override of cmd.Cmd methods and hooks
 
     def preloop(self):
         super(BaseConsole, self).preloop()
         self._hist = []
-        self._debug("Entering console " + self.intro)
+        self._debug(f"Entering console {self.intro}")
         self._log(self.ruler * 24)
         self._log(self.intro)
 
     def postloop(self):
         super(BaseConsole, self).postloop()
-        self._debug("Exiting console " + self.intro)
+        self._debug(f"Exiting console {self.intro}")
         self._log(self.ruler * 24)
         self._log()
 
     def precmd(self, line):
         self._hist += [line.strip()]
-        self._debug("Executing console command: " + line)
+        self._debug(f"Executing console command: {line}")
         self._log(self.prompt + str(line))
         return line
 

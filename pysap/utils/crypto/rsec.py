@@ -247,15 +247,18 @@ class RSECCipher(object):
         if r_2 / (16 ** 8) > 0:
             r_2 = r_2 % (16 ** 8)
             r_2 |= 1
-        value = self.table[2 * 64 + (((r_1 >> 19) ^ sub_key[2]) & 0x3F)] | \
-                self.table[3 * 64 + (((r_1 >> 15) ^ sub_key[3]) & 0x3F)] | \
-                self.table[4 * 64 + (((r_1 >> 11) ^ sub_key[4]) & 0x3F)] | \
-                self.table[5 * 64 + (((r_1 >> 7) ^ sub_key[5]) & 0x3F)] | \
-                self.table[6 * 64 + (((r_1 >> 3) ^ sub_key[6]) & 0x3F)] | \
-                self.table[7 * 64 + ((r_2 ^ sub_key[7]) & 0x3F)] | \
-                self.table[1 * 64 + (((r_1 >> 23) ^ sub_key[1]) & 0x3F)] | \
-                self.table[0 * 64 + (sub_key[0] & 0x3F ^ (32 * r_1 | (r_1 >> 27)) & 0x3F)]
-        return value
+        return (
+            self.table[2 * 64 + (((r_1 >> 19) ^ sub_key[2]) & 0x3F)]
+            | self.table[3 * 64 + (((r_1 >> 15) ^ sub_key[3]) & 0x3F)]
+            | self.table[4 * 64 + (((r_1 >> 11) ^ sub_key[4]) & 0x3F)]
+            | self.table[5 * 64 + (((r_1 >> 7) ^ sub_key[5]) & 0x3F)]
+            | self.table[6 * 64 + (((r_1 >> 3) ^ sub_key[6]) & 0x3F)]
+            | self.table[7 * 64 + ((r_2 ^ sub_key[7]) & 0x3F)]
+            | self.table[1 * 64 + (((r_1 >> 23) ^ sub_key[1]) & 0x3F)]
+            | self.table[
+                0 * 64 + (sub_key[0] & 0x3F ^ (32 * r_1 | (r_1 >> 27)) & 0x3F)
+            ]
+        )
 
     def _decode_v1(self, keys, block, chain):
         if chain and block:
@@ -280,7 +283,7 @@ class RSECCipher(object):
         tmp_r ^= self._f(tmp_6, keys[24:32])
         tmp_7 = self._f(tmp_r, keys[16:24]) ^ tmp_6
         tmp_r ^= self._f(tmp_7, keys[8:16])
-        tmp_8 = self._f(tmp_r, keys[0:8]) ^ tmp_7
+        tmp_8 = self._f(tmp_r, keys[:8]) ^ tmp_7
         blocks[0] = self._get_bit(tmp_8, 3)
         blocks[1] = self._get_bit(tmp_8, 2)
         blocks[2] = self._get_bit(tmp_8, 1)
@@ -342,12 +345,8 @@ class RSECCipher(object):
             value = self.totrot[j]
             for k in range(56):
                 idx = value
-                if k >= 28:
-                    if value >= 56:
-                        idx = value - 28
-                else:
-                    if value >= 28:
-                        idx = value - 28
+                if k >= 28 and value >= 56 or k < 28 and value >= 28:
+                    idx = value - 28
                 array_2[k] = (array_1[idx])
                 value += 1
             for n in range(48):

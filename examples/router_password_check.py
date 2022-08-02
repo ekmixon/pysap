@@ -96,7 +96,10 @@ def try_password(options, password, output=None, k=0):
     cpu_ticks = fau_timer.get_cpu_ticks()
     time = fau_timer.get_time()
 
-    logging.debug("Request time: CPU Speed: %s Hz CPU Ticks: %s Time: %s nanosec" % (cpu_peed, cpu_ticks, time))
+    logging.debug(
+        f"Request time: CPU Speed: {cpu_peed} Hz CPU Ticks: {cpu_ticks} Time: {time} nanosec"
+    )
+
 
     # Write the time to the output file
     if output:
@@ -109,9 +112,7 @@ def try_password(options, password, output=None, k=0):
 def main():
     options = parse_options()
 
-    level = logging.INFO
-    if options.verbose:
-        level = logging.DEBUG
+    level = logging.DEBUG if options.verbose else logging.INFO
     logging.basicConfig(level=level, format='%(message)s')
 
     if fau_timer is None:
@@ -133,10 +134,10 @@ def main():
     with open(options.output, "w") as f:
 
         c = 0
-        for i in range(0, len(options.password) + 1):
+        for i in range(len(options.password) + 1):
             password = options.password[:i] + "X" * (len(options.password) - i)
             logging.info("[*] Trying with password (%s) len %d" % (password, len(password)))
-            for _ in range(0, options.tries):
+            for _ in range(options.tries):
                 try_password(options, password, f, c)
                 c += 1
 

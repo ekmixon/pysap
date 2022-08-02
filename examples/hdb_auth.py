@@ -68,8 +68,14 @@ def parse_options():
                      help="Validate the hostname provided in the TLS certificate")
 
     auth = parser.add_argument_group("Authentication")
-    auth.add_argument("-m", "--method", dest="method", default="SCRAMSHA256",
-                      help="Authentication method. Supported methods: {} [%(default)s]".format(",".join(saphdb_auth_methods.keys())))
+    auth.add_argument(
+        "-m",
+        "--method",
+        dest="method",
+        default="SCRAMSHA256",
+        help=f'Authentication method. Supported methods: {",".join(saphdb_auth_methods.keys())} [%(default)s]',
+    )
+
     auth.add_argument("--username", dest="username", help="User name")
     auth.add_argument("--password", dest="password", help="Password")
     auth.add_argument("--jwt-file", dest="jwt_file", metavar="FILE",
@@ -120,7 +126,7 @@ def craft_auth_method(options):
     """Obtain the corresponding Authentication method according to the command line options provided.
     """
 
-    logging.debug("[*] Using authentication method %s" % options.method)
+    logging.debug(f"[*] Using authentication method {options.method}")
     auth_method_cls = saphdb_auth_methods[options.method]
     auth_method = None
 
@@ -160,9 +166,7 @@ def craft_auth_method(options):
 def main():
     options = parse_options()
 
-    level = logging.INFO
-    if options.verbose:
-        level = logging.DEBUG
+    level = logging.DEBUG if options.verbose else logging.INFO
     logging.basicConfig(level=level, format='%(message)s')
 
     # Select the desired authentication method
@@ -179,9 +183,12 @@ def main():
               "hostname": options.hostname}
     if options.tls:
         connection_class = SAPHDBTLSConnection
-        kwargs.update({"tls_cert_trust": options.tls_cert_trust,
-                       "tls_cert_file": options.tls_cert_file,
-                       "tls_check_hostname": options.tls_check_hostname})
+        kwargs |= {
+            "tls_cert_trust": options.tls_cert_trust,
+            "tls_cert_file": options.tls_cert_file,
+            "tls_check_hostname": options.tls_check_hostname,
+        }
+
 
     hdb = connection_class(options.remote_host,
                            options.remote_port,
@@ -197,15 +204,18 @@ def main():
         logging.info("[*] Successfully authenticated against HANA database server")
 
         if hdb.auth_method.session_cookie is not None:
-            logging.info("[*] Session cookie assigned to this session: %s" % hdb.auth_method.session_cookie)
+            logging.info(
+                f"[*] Session cookie assigned to this session: {hdb.auth_method.session_cookie}"
+            )
+
 
         hdb.close()
         logging.debug("[*] Connection with HANA database server closed")
 
     except SAPHDBAuthenticationError as e:
-        logging.error("[-] Authentication error: %s" % e.message)
+        logging.error(f"[-] Authentication error: {e.message}")
     except SAPHDBConnectionError as e:
-        logging.error("[-] Connection error: %s" % e.message)
+        logging.error(f"[-] Connection error: {e.message}")
     except KeyboardInterrupt:
         logging.info("[-] Connection canceled")
 

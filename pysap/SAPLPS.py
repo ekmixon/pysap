@@ -113,11 +113,9 @@ class SAPLPSCipher(Packet):
         # Decrypt the cipher text with the encryption key
         iv = "\x00" * 16
         decryptor = Cipher(algorithms.AES(encryption_key), modes.CBC(iv), backend=default_backend()).decryptor()
-        plain = decryptor.update(self.encrypted_data) + decryptor.finalize()
-
         # TODO: Calculate and validate HMAC
 
-        return plain
+        return decryptor.update(self.encrypted_data) + decryptor.finalize()
 
     def decrypt_encryption_key_dpapi(self):
         """Decrypts the encryption key using the DP API. The key is encrypted using
@@ -151,9 +149,7 @@ class SAPLPSCipher(Packet):
 
         iv = "\x00" * 16
         decryptor = Cipher(algorithms.AES(default_key), modes.CBC(iv), backend=default_backend()).decryptor()
-        encryption_key = decryptor.update(self.encrypted_key) + decryptor.finalize()
-
-        return encryption_key
+        return decryptor.update(self.encrypted_key) + decryptor.finalize()
 
     def decrypt_encryption_key_tpm(self):
         """Decrypts the encryption key using the TPM method.

@@ -165,12 +165,16 @@ class SAPRouterRouteHop(PacketNoPadded):
         :return: route hops in the route string
         :rtype: ``list`` of :class:`SAPRouterRouteHop`
         """
-        result = []
-        for route_hop in [x.groupdict() for x in cls.regex.finditer(route_string)]:
-            result.append(cls(hostname=route_hop["hostname"],
-                              port=route_hop["port"],
-                              password=route_hop["password"]))
-        return result
+        return [
+            cls(
+                hostname=route_hop["hostname"],
+                port=route_hop["port"],
+                password=route_hop["password"],
+            )
+            for route_hop in [
+                x.groupdict() for x in cls.regex.finditer(route_string)
+            ]
+        ]
 
     @classmethod
     def from_hops(cls, route_hops):
@@ -184,11 +188,11 @@ class SAPRouterRouteHop(PacketNoPadded):
         """
         result = ""
         for route_hop in route_hops:
-            result += "/H/{}".format(route_hop.hostname)
+            result += f"/H/{route_hop.hostname}"
             if route_hop.port:
-                result += "/S/{}".format(route_hop.port)
+                result += f"/S/{route_hop.port}"
             if route_hop.password:
-                result += "/W/{}".format(route_hop.password)
+                result += f"/W/{route_hop.password}"
         return result
 
 
@@ -675,18 +679,14 @@ class SAPRoutedStreamSocket(SAPNIStreamSocket):
         """
         # If no route was provided, check the talk mode
         if route is None:
-            # If talk mode is raw, create a new StreamSocket and get rid of the
-            # NI layer completely and force the base class to Raw.
-            if talk_mode == ROUTER_TALK_MODE_NI_RAW_IO:
-                sock = socket.create_connection((host, port))
-                if "base_cls" in kwargs:
-                    kwargs["basecls"] = Raw
-                    del(kwargs["base_cls"])
-                return StreamSocket(sock, **kwargs)
-
-            # Otherwise use the standard SAPNIStreamSocket get_nisocket method
-            else:
+            if talk_mode != ROUTER_TALK_MODE_NI_RAW_IO:
                 return SAPNIStreamSocket.get_nisocket(host, port, **kwargs)
+
+            sock = socket.create_connection((host, port))
+            if "base_cls" in kwargs:
+                kwargs["basecls"] = Raw
+                del(kwargs["base_cls"])
+            return StreamSocket(sock, **kwargs)
 
         # If the route was provided using a route string, convert it to a
         # list of hops
@@ -800,11 +800,9 @@ class SAPRouterNativeProxy(SAPNIProxy):
         # Creates a remote socket
         router = self.route()
 
-        # Create the NI Stream Socket and handle it
-        proxy = self.handler(SAPNIStreamSocket(client, self.keep_alive),
-                             router,
-                             self.options)
-        return proxy
+        return self.handler(
+            SAPNIStreamSocket(client, self.keep_alive), router, self.options
+        )
 
     def route(self):
         """Requests a route to forward the traffic through the remote SAP

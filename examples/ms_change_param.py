@@ -104,10 +104,10 @@ def main():
     print("[*] Sending login packet")
     response = conn.sr(p)[SAPMS]
 
-    print("[*] Login performed, server string: %s" % response.fromname)
+    print(f"[*] Login performed, server string: {response.fromname}")
     server_string = response.fromname
 
-    print("[*] Retrieving current value of parameter: %s" % options.param_name)
+    print(f"[*] Retrieving current value of parameter: {options.param_name}")
 
     # Send ADM AD_PROFILE request
     adm = SAPMSAdmRecord(opcode=0x1, parameter=options.param_name)
@@ -122,17 +122,21 @@ def main():
         response.show()
 
     param_old_value = response.adm_records[0].parameter
-    print("[*] Parameter %s" % param_old_value)
+    print(f"[*] Parameter {param_old_value}")
 
     # If a parameter change was requested, send an ADM AD_SHARED_PARAMETER request
     if options.param_value:
-        print("[*] Changing parameter value from: %s to: %s" % (param_old_value,
-                                                                options.param_value))
+        print(
+            f"[*] Changing parameter value from: {param_old_value} to: {options.param_value}"
+        )
+
 
         # Build the packet
-        adm = SAPMSAdmRecord(opcode=0x2e,
-                             parameter="%s=%s" % (options.param_name,
-                                                  options.param_value))
+        adm = SAPMSAdmRecord(
+            opcode=0x2E,
+            parameter=f"{options.param_name}={options.param_value}",
+        )
+
         p = SAPMS(toname=server_string, fromname=client_string, version=4,
                   iflag=5, flag=4, domain=domain, adm_records=[adm])
 

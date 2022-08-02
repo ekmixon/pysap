@@ -831,6 +831,4 @@ class SAPCARArchive(object):
         :return: raw data
         :rtype: string
         """
-        if self._sapcar:
-            return str(self._sapcar)
-        return ""
+        return str(self._sapcar) if self._sapcar else ""

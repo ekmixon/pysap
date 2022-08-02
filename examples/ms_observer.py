@@ -92,7 +92,7 @@ def main():
     p = SAPMS(flag=0x00, iflag=0x08, domain=domain, toname=client_string, fromname=client_string)
     response = conn.sr(p)[SAPMS]
 
-    print("[*] Login performed, server string: %s" % response.fromname)
+    print(f"[*] Login performed, server string: {response.fromname}")
     server_string = response.fromname
 
     # Send MS_SERVER_CHG packet

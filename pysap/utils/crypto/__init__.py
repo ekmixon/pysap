@@ -120,7 +120,7 @@ class PKCS12_PBKDF1(object):
                 s_len = v * int(math.ceil(float(len(inp)) / v))
                 while len(s) < s_len:
                     s += inp
-                s = s[0:s_len]
+                s = s[:s_len]
             return s
 
         # Step 2 - Concatenate copies of the salt
@@ -143,14 +143,12 @@ class PKCS12_PBKDF1(object):
             return h.finalize()
 
         def to_int(value):
-            if value == b'':
-                return 0
-            return long(value.encode("hex"), 16)
+            return 0 if value == b'' else long(value.encode("hex"), 16)
 
         def to_bytes(value):
             value = "%x" % value
             if len(value) & 1:
-                value = "0" + value
+                value = f"0{value}"
             return value.decode("hex")
 
         a = b'\x00' * (c * u)
@@ -169,7 +167,7 @@ class PKCS12_PBKDF1(object):
                 b = to_int(b[:v]) + 1
 
                 # Step 6.C
-                for n2 in range(0, len(i) // v):
+                for n2 in range(len(i) // v):
                     start = n2 * v
                     end = (n2 + 1) * v
                     i_n2 = i[start:end]
@@ -179,7 +177,7 @@ class PKCS12_PBKDF1(object):
                     if i_n2_l > v:
                         i_n2 = i_n2[i_n2_l - v:]
 
-                    i = i[0:start] + i_n2 + i[end:]
+                    i = i[:start] + i_n2 + i[end:]
 
             # Step 7
             start = (n - 1) * u
@@ -211,7 +209,7 @@ class PBKDF1(object):
         h.update(key_material)
         h.update(self._salt)
         derived_key = h.finalize()
-        for i in xrange(self._iterations-1):
+        for _ in xrange(self._iterations-1):
             h = Hash(self._algorithm(), backend=self._backend)
             h.update(derived_key)
             derived_key = h.finalize()
@@ -246,18 +244,14 @@ class PKCS12_PBES1(object):
         plain_text = padder.update(plain_text) + padder.finalize()
 
         encryptor = Cipher(self._enc_algorithm(self._derive_key), self._enc_mode(self._iv), backend=self._backend).encryptor()
-        cipher_text = encryptor.update(plain_text) + encryptor.finalize()
-
-        return cipher_text
+        return encryptor.update(plain_text) + encryptor.finalize()
 
     def decrypt(self, cipher_text):
         padder = padding.PKCS7(self._hash_algorithm.block_size).padder()
         cipher_text = padder.update(cipher_text) + padder.finalize()
 
         decryptor = Cipher(self._enc_algorithm(self._derive_key), self._enc_mode(self._iv), backend=self._backend).decryptor()
-        plain_text = decryptor.update(cipher_text) + decryptor.finalize()
-
-        return plain_text
+        return decryptor.update(cipher_text) + decryptor.finalize()
 
 
 class SCRAM(object):
@@ -357,7 +351,7 @@ def rsec_decrypt(blob, key):
 
     blob = [ord(i) for i in blob]
     key = [ord(i) for i in key]
-    key1 = key[0:8]
+    key1 = key[:8]
     key2 = key[8:16]
     key3 = key[16:24]
 

@@ -103,7 +103,7 @@ def main():
 
         try:
             with open(options.file_param) as list_param:
-                for line in list_param.readlines():
+                for line in list_param:
                     line = line.strip()
 
                     # Check for comments or empty lines
@@ -148,7 +148,7 @@ def main():
                             status = '[+]'
 
                     # display result
-                    print ("%s %s = %s" % (status, param2c, value))
+                    print(f"{status} {param2c} = {value}")
 
         except IOError:
             print("Error reading parameters file !")

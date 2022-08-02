@@ -170,9 +170,7 @@ class SAPCredv2_Cred(ASN1_Packet):
     @property
     def cipher_format_version(self):
         cipher = self.cipher.val_readable
-        if len(cipher) >= 36 and ord(cipher[0]) in [0, 1]:
-            return ord(cipher[0])
-        return 0
+        return ord(cipher[0]) if len(cipher) >= 36 and ord(cipher[0]) in {0, 1} else 0
 
     @property
     def cipher_algorithm(self):
@@ -238,7 +236,7 @@ class SAPCredv2_Cred(ASN1_Packet):
         """
         digest = Hash(SHA256(), backend=default_backend())
         digest.update(key)
-        digest.update(blob[0:4])
+        digest.update(blob[:4])
         digest.update(header.salt)
         digest.update(self.xor(username, ord(header.salt[0])))
         digest.update("" * 0x20)
@@ -312,11 +310,10 @@ class SAPCredv2_Cred_LPS(ASN1_Packet):
 
     def get_subject(self):
         attrs = self.subject
-        attrsDict = {}
-        for attr in attrs:
-            # we assume there is only one name in each rdn ASN1_SET
-            attrsDict[attr.rdn[0].type.oidname] = plain_str(attr.rdn[0].value.val)  # noqa: E501
-        return attrsDict
+        return {
+            attr.rdn[0].type.oidname: plain_str(attr.rdn[0].value.val)
+            for attr in attrs
+        }
 
     @property
     def common_name(self):
@@ -326,11 +323,11 @@ class SAPCredv2_Cred_LPS(ASN1_Packet):
         attrsDict = self.get_subject()
         for attrType, attrSymbol in _attrName_mapping:
             if attrType in attrsDict:
-                name_str += "/" + attrSymbol + "="
+                name_str += f"/{attrSymbol}="
                 name_str += attrsDict[attrType]
         for attrType in sorted(attrsDict):
             if attrType not in _attrName_specials:
-                name_str += "/" + attrType + "="
+                name_str += f"/{attrType}="
                 name_str += attrsDict[attrType]
         return name_str
 
@@ -344,11 +341,11 @@ class SAPCredv2_Cred_LPS(ASN1_Packet):
 
     @property
     def lps_type_str(self):
-        if self.lps_type in SAPLPSCipher.lps_types:
-            lps = SAPLPSCipher.lps_types[self.lps_type]
-        else:
-            lps = "OFF"
-        return lps
+        return (
+            SAPLPSCipher.lps_types[self.lps_type]
+            if self.lps_type in SAPLPSCipher.lps_types
+            else "OFF"
+        )
 
     @property
     def cipher_format_version(self):
@@ -356,10 +353,7 @@ class SAPCredv2_Cred_LPS(ASN1_Packet):
 
     @property
     def cipher_algorithm(self):
-        if self.version == 2:
-            return CIPHER_ALGORITHM_AES256
-        else:
-            return CIPHER_ALGORITHM_3DES
+        return CIPHER_ALGORITHM_AES256 if self.version == 2 else CIPHER_ALGORITHM_3DES
 
     def decrypt(self, username=None):
         """Decrypt a credential file using LPS.
@@ -372,8 +366,10 @@ class SAPCredv2_Cred_LPS(ASN1_Packet):
         """
 
         cipher = SAPLPSCipher(self.cipher.val_readable)
-        log_cred.debug("Obtained LPS cipher object (version={}, lps={})".format(cipher.version,
-                                                                                cipher.lps_type))
+        log_cred.debug(
+            f"Obtained LPS cipher object (version={cipher.version}, lps={cipher.lps_type})"
+        )
+
         plain = cipher.decrypt()
 
         # Get the pin from the raw data

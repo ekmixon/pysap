@@ -64,13 +64,13 @@ class PreExecuteNotebooksCommand(Command):
         if self.notebooks:
             self.notebooks = glob(base_path + self.notebooks)
         else:
-            self.notebooks = glob(base_path + "protocols/*.ipynb")
-            self.notebooks.extend(glob(base_path + "fileformats/*.ipynb"))
+            self.notebooks = glob(f"{base_path}protocols/*.ipynb")
+            self.notebooks.extend(glob(f"{base_path}fileformats/*.ipynb"))
 
     def run(self):
         """Pre executes notebooks."""
         for notebook in self.notebooks:
-            system("jupyter nbconvert --inplace --to notebook --execute {}".format(notebook))
+            system(f"jupyter nbconvert --inplace --to notebook --execute {notebook}")
 
 
 sapcompress_macros = [

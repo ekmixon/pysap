@@ -81,7 +81,7 @@ def main():
         with open(options.file_input, 'rb') as f:
             file_input_content = f.read()
     except IOError:
-        print("[!] Error reading %s file." % options.file_input)
+        print(f"[!] Error reading {options.file_input} file.")
         exit(2)
 
     # Initiate the connection
@@ -102,7 +102,7 @@ def main():
     p = SAPIGS.http(options.remote_host, options.remote_port, 'ZIPPER', files)
 
     # Send/Receive request
-    print("[*] Send %s to ZIPPER interpreter..." % options.file_input)
+    print(f"[*] Send {options.file_input} to ZIPPER interpreter...")
     conn.send(p)
     print("[*] Response :")
     response = conn.recv(1024)

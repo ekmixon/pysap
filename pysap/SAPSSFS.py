@@ -148,10 +148,10 @@ class SAPSSFSDataRecord(PacketNoPadded):
         return self.decrypt_data(key)
 
     def decrypt_data(self, key):
-        log_ssfs.debug("Decrypting record {}".format(self.key_name))
+        log_ssfs.debug(f"Decrypting record {self.key_name}")
         decrypted_data = rsec_decrypt(self.data, key.key)
         decrypted_payload = SAPSSFSDecryptedPayload(decrypted_data)
-        log_ssfs.warn("Decrypted payload integrity is {}".format(decrypted_payload.valid))
+        log_ssfs.warn(f"Decrypted payload integrity is {decrypted_payload.valid}")
         return decrypted_payload.data
 
     @property
@@ -195,10 +195,7 @@ class SAPSSFSData(Packet):
         :return: if the data file contains the record with key_name
         :rtype: bool
         """
-        for record in self.records:
-            if record.key_name.rstrip(" ") == key_name:
-                return True
-        return False
+        return any(record.key_name.rstrip(" ") == key_name for record in self.records)
 
     def get_records(self, key_name):
         """Generator to retrieve records with the given key name.

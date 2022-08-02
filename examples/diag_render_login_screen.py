@@ -148,11 +148,10 @@ class DiagScreen(wx.Frame):
             if men:
                 self.menus[pos1][pos2] = wx.Menu()
                 item = self.menus[pos1][0].AppendMenu(wx.ID_ANY, text, self.menus[pos1][pos2])
+            elif pos3 > 0:
+                item = self.menus[pos1][pos2].Append(wx.ID_ANY, text)
             else:
-                if pos3 > 0:
-                    item = self.menus[pos1][pos2].Append(wx.ID_ANY, text)
-                else:
-                    item = self.menus[pos1][0].Append(wx.ID_ANY, text)
+                item = self.menus[pos1][0].Append(wx.ID_ANY, text)
             item.Enable(sel == 1)
 
 
@@ -164,10 +163,7 @@ def render_diag_screen(screen, verbose):
 
     def get_item_value(screen, item_type, item_id, item_sid, i=0):
         item = screen.get_item(item_type, item_id, item_sid)
-        if item:
-            return item[i].item_value
-        else:
-            return []
+        return item[i].item_value if item else []
 
     areasize = get_item_value(screen, "APPL", "VARINFO", "AREASIZE")
     dbname = get_item_value(screen, "APPL", "ST_R3INFO", "DBNAME")
@@ -181,15 +177,24 @@ def render_diag_screen(screen, verbose):
     toolbars = get_item_value(screen, "APPL4", "MNUENTRY", "MENU_KYB")
 
     if verbose:
-        print("[*] DB Name: " + dbname)
-        print("[*] CPU Name: " + cpuname)
-        print("[*] Client: " + client)
-        print("[*] Session Icon: " + session_icon)
-        print("[*] Session Title: " + session_title)
-        print("[*] Window Size: " + areasize.window_height + " x " + areasize.window_width)
+        print(f"[*] DB Name: {dbname}")
+        print(f"[*] CPU Name: {cpuname}")
+        print(f"[*] Client: {client}")
+        print(f"[*] Session Icon: {session_icon}")
+        print(f"[*] Session Title: {session_title}")
+        print(f"[*] Window Size: {areasize.window_height} x {areasize.window_width}")
 
     app = wx.App(False)
-    login_frame = DiagScreen(None, "%s (%s)" % (session_icon, client), areasize.window_height, areasize.window_width, session_title, dbname, cpuname)
+    login_frame = DiagScreen(
+        None,
+        f"{session_icon} ({client})",
+        areasize.window_height,
+        areasize.window_width,
+        session_title,
+        dbname,
+        cpuname,
+    )
+
 
     # Render the atoms (control boxes and labels)
     atoms = screen.get_item(["APPL", "APPL4"], "DYNT", "DYNT_ATOM")

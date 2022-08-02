@@ -70,7 +70,10 @@ class PySAPCAR(object):
         description = "Basic and experimental implementation of SAPCAR archive format."
 
         parser = ArgumentParser(usage=pysapcar_usage, description=description, epilog=pysap.epilog)
-        parser.add_argument("--version", action="version", version="%(prog)s {}".format(pysap.__version__))
+        parser.add_argument(
+            "--version", action="version", version=f"%(prog)s {pysap.__version__}"
+        )
+
 
         # Commands
         parser.add_argument("-c", dest="create", action="store_true", help="Create archive with specified files")
@@ -113,15 +116,17 @@ class PySAPCAR(object):
         self.logger.info("pysapcar version: %s", pysap.__version__)
 
         # Check the mode the archive file should be opened
-        if options.list or options.extract:
+        if (
+            options.list
+            or options.extract
+            or not options.create
+            and not options.append
+        ):
             self.mode = "r"
         elif options.create:
             self.mode = "w"
-        elif options.append:
+        else:
             self.mode = "r+"
-        else:  # default to read mode
-            self.mode = "r"
-
         # Opens the input/output file
         self.archive_fd = None
         if options.filename:
@@ -171,8 +176,7 @@ class PySAPCAR(object):
         if target_filenames:
             files = files.intersection(set(target_filenames))
 
-        for filename in files:
-            yield filename
+        yield from files
 
     def append(self, options, args):
         """Appends a file to the archive file.
@@ -267,10 +271,7 @@ class PySAPCAR(object):
                     data = fil.open(enforce_checksum=options.enforce_checksum).read()
                 except (SAPCARInvalidFileException, DecompressError) as e:
                     self.logger.error("pysapcar: Invalid SAP CAR file '%s' (%s)", self.archive_fd.name, e.message)
-                    if options.break_on_error:
-                        flag = STOP
-                    else:
-                        flag = SKIP
+                    flag = STOP if options.break_on_error else SKIP
                 except SAPCARInvalidChecksumException:
                     self.logger.error("pysapcar: Invalid checksum found for file '%s'", fil.filename)
                     if options.enforce_checksum:

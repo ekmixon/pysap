@@ -92,11 +92,12 @@ serv_info = {
     'DBNAME': lambda s: s,
     'CPUNAME': lambda s: s,
     'CLIENT': lambda s: s,
-    'LANGUAGE': lambda s: gui_lang.get(s, 'Language unknown (%s)' % s),
+    'LANGUAGE': lambda s: gui_lang.get(s, f'Language unknown ({s})'),
     'SESSION_ICON': lambda s: s,
     'SESSION_TITLE': lambda s: s,
     'KERNEL_VERSION': lambda s: '.'.join(s[:-1].split('\x00')),
 }
+
 
 key_len = 20
 val_len = 60
@@ -120,7 +121,11 @@ def show_serv_info(item):
     """
     isid = diag_appl_sids[item.item_id][item.item_sid]
     if isid in serv_info.keys():
-        print(("%s" % isid).ljust(key_len) + "\t" + ("%s" % serv_info[isid](item.item_value)).ljust(val_len))
+        print(
+            f"{isid}".ljust(key_len)
+            + "\t"
+            + f"{serv_info[isid](item.item_value)}".ljust(val_len)
+        )
 
 
 def show_text_info(item):
@@ -140,7 +145,7 @@ def show_text_info(item):
             value = it.getfieldval("field1_text")
             if value is None:
                 value = it.getfieldval("field2_text")
-            key = '%s_%s' % (it.row, it.col)
+            key = f'{it.row}_{it.col}'
             if key not in dico.keys():
                 dico[key] = {'var': key, 'value': value}
             if value:
@@ -158,7 +163,7 @@ def show_text_info(item):
         # final rendering
         for k in dico_final.keys():
             if dico_final[k]:
-                print(("%s" % k).ljust(key_len) + "\t" + ("%s" % dico_final[k]).ljust(val_len))
+                print(f"{k}".ljust(key_len) + "\t" + f"{dico_final[k]}".ljust(val_len))
 
 
 # Set the verbosity to 0

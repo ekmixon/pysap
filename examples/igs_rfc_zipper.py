@@ -82,7 +82,7 @@ def main():
         with open(options.file_input, 'rb') as f:
             file_input_content = f.read()
     except IOError:
-        print("[!] Error reading %s file." % options.file_input)
+        print(f"[!] Error reading {options.file_input} file.")
         exit(2)
 
     # Initiate the connection
@@ -91,11 +91,13 @@ def main():
                                               options.route_string,
                                               base_cls=SAPIGS)
 
-    # the xml request for zipper interpreter
-    xml = '<?xml version="1.0"?><REQUEST><COMPRESS type="zip"><FILES>'
-    xml += '<FILE name="{}" '.format(options.file_input)
-    xml += 'path="{}" '.format(options.file_path)
-    xml += 'size="{}"/>'.format(len(file_input_content))
+    xml = (
+        '<?xml version="1.0"?><REQUEST><COMPRESS type="zip"><FILES>'
+        + f'<FILE name="{options.file_input}" '
+    )
+
+    xml += f'path="{options.file_path}" '
+    xml += f'size="{len(file_input_content)}"/>'
     xml += '</FILES></COMPRESS></REQUEST>'
 
     # create tables descriptions
@@ -126,7 +128,7 @@ def main():
     p = p / table_xml / table_file / content_xml / content_file
 
     # Send the IGS packet
-    print("[*] Send %s to ZIPPER interpreter..." % options.file_input)
+    print(f"[*] Send {options.file_input} to ZIPPER interpreter...")
     conn.send(p)
     print("[*] File sent.")
 

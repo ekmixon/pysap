@@ -141,9 +141,12 @@ class PySAPHDBUserStore(object):
         try:
             with open(filename) as f:
                 obj = cls(f.read())
-            self.logger.info("pysaphdbuserstore: Reading {} file '{}'".format(type, filename))
+            self.logger.info(f"pysaphdbuserstore: Reading {type} file '{filename}'")
         except IOError as e:
-            self.logger.error("pysaphdbuserstore: Error reading {} file '{}' ({})".format(type, filename, e.message))
+            self.logger.error(
+                f"pysaphdbuserstore: Error reading {type} file '{filename}' ({e.message})"
+            )
+
             return None
 
         return obj
@@ -156,7 +159,10 @@ class PySAPHDBUserStore(object):
         try:
             ssfs_data = self.open_file(options.data_filename, SAPSSFSData, "SSFS Data")
         except Exception:
-            self.logger.error("pysaphdbuserstore: Unable to read data in file {}\n".format(options.data_filename))
+            self.logger.error(
+                f"pysaphdbuserstore: Unable to read data in file {options.data_filename}\n"
+            )
+
 
         for ssfs_record in ssfs_data.records:
             if options.deleted or not ssfs_record.deleted:
@@ -173,13 +179,19 @@ class PySAPHDBUserStore(object):
         try:
             ssfs_key = self.open_file(options.key_filename, SAPSSFSKey, "SSFS Key")
         except Exception:
-            self.logger.error("pysaphdbuserstore: Unable to read key in file {}\n".format(options.key_filename))
+            self.logger.error(
+                f"pysaphdbuserstore: Unable to read key in file {options.key_filename}\n"
+            )
+
 
         # Parse the data file
         try:
             ssfs_data = self.open_file(options.data_filename, SAPSSFSData, "SSFS Data")
         except Exception:
-            self.logger.error("pysaphdbuserstore: Unable to read data in file {}\n".format(options.data_filename))
+            self.logger.error(
+                f"pysaphdbuserstore: Unable to read data in file {options.data_filename}\n"
+            )
+
 
         for arg in args:
             if ssfs_data.has_record(arg):

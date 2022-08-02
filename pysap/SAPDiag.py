@@ -419,13 +419,12 @@ def diag_item_get_class(pkt, item_type, item_id, item_sid):
 
     :return: the associated :class:`SAPDiagItem` class if registered or None
     """
-    if item_type in [0x10, 0x12, "APPL", "APPL4"]:
-        if item_id in diag_item_appl_classes and item_sid in diag_item_appl_classes[item_id]:
-            return diag_item_appl_classes[item_id][item_sid]
-        else:
-            return None
-    else:
+    if item_type not in [0x10, 0x12, "APPL", "APPL4"]:
         return diag_item_classes.get(item_type)
+    if item_id in diag_item_appl_classes and item_sid in diag_item_appl_classes[item_id]:
+        return diag_item_appl_classes[item_id][item_sid]
+    else:
+        return None
 
 
 class SAPDiagItem(PacketNoPadded):
@@ -620,13 +619,30 @@ class SAPDiag(PacketNoPadded):
 
         # Filter and return items
         if item_sid is None and item_id is None:
-            items = [item for item in self.message if hasattr(item, "item_type") and item.item_type == item_type]
-        elif item_sid is None:
-            items = [item for item in self.message if hasattr(item, "item_type") and item.item_type == item_type and item.item_id == item_id]
-        else:
-            items = [item for item in self.message if hasattr(item, "item_type") and item.item_type == item_type and item.item_id == item_id and item.item_sid == item_sid]
+            return [
+                item
+                for item in self.message
+                if hasattr(item, "item_type") and item.item_type == item_type
+            ]
 
-        return items
+        elif item_sid is None:
+            return [
+                item
+                for item in self.message
+                if hasattr(item, "item_type")
+                and item.item_type == item_type
+                and item.item_id == item_id
+            ]
+
+        else:
+            return [
+                item
+                for item in self.message
+                if hasattr(item, "item_type")
+                and item.item_type == item_type
+                and item.item_id == item_id
+                and item.item_sid == item_sid
+            ]
 
 
 class SAPDiagError(PacketNoPadded):

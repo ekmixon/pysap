@@ -109,9 +109,7 @@ def parse_options():
 def main():
     options = parse_options()
 
-    level = logging.INFO
-    if options.verbose:
-        level = logging.DEBUG
+    level = logging.DEBUG if options.verbose else logging.INFO
     logging.basicConfig(level=level, format='%(message)s')
 
     logging.info("[*] Setting a proxy between %s:%d and remote SAP Router %s:%d (talk mode %s)" % (options.local_host,
@@ -121,7 +119,7 @@ def main():
                                                                                                    options.talk_mode))
 
     if options.target_route_string:
-    	logging.info("[*] using Route String %s" % (options.target_route_string))
+        logging.info(f"[*] using Route String {options.target_route_string}")
     options.talk_mode = {"raw": ROUTER_TALK_MODE_NI_RAW_IO, "ni": ROUTER_TALK_MODE_NI_MSG_IO}[options.talk_mode]
 
     proxy = SAPRouterNativeProxy(options.local_host, options.local_port,
@@ -139,12 +137,12 @@ def main():
             try:
                 proxy.handle_connection()
             except SocketError as e:
-                logging.error("[*] Socket Error %s" % e)
+                logging.error(f"[*] Socket Error {e}")
 
     except KeyboardInterrupt:
         logging.error("[*] Cancelled by the user !")
     except SAPRouteException as e:
-        logging.error("[*] Closing routing do to error %s" % e)
+        logging.error(f"[*] Closing routing do to error {e}")
 
 
 if __name__ == "__main__":

@@ -132,9 +132,13 @@ def is_duplicate_login(response):
         for item in response[SAPDiag].get_item("APPL4", "DYNT", "DYNT_ATOM"):
             if item.item_value:
                 for atom in item.item_value.items:
-                    if atom.dlg_flag_1 is 0 and atom.dlg_flag_2 is 0 and atom.field2_text:
-                        if "is already logged on in" in atom.field2_text:
-                            return True, atom.field2_text
+                    if (
+                        atom.dlg_flag_1 is 0
+                        and atom.dlg_flag_2 is 0
+                        and atom.field2_text
+                        and "is already logged on in" in atom.field2_text
+                    ):
+                        return True, atom.field2_text
     return False, ""
 
 
@@ -213,13 +217,7 @@ def discover_client(host, port, terminal, route, client, verbose, results):
     unavailable = "E: Client %s is not available in this system"
     unexistent = "Client does not exist"
     license_check = "E: Logon not possible (error in license check)"
-    if status in [license_check, unavailable % client, unexistent]:
-        available = False
-
-    # Otherwise assume the client does exist to be on the safe side
-    else:
-        available = True
-
+    available = status not in [license_check, unavailable % client, unexistent]
     results.append((client, available, status))
 
 
@@ -240,7 +238,7 @@ def main():
 
         # Get the client range to test
         (client_min, client_max) = options.discovery_range.split("-")
-        print("[*] Discovering clients (%s-%s) ..." % (client_min, client_max))
+        print(f"[*] Discovering clients ({client_min}-{client_max}) ...")
         # Add the tasks to the threadpool
         results = []
         for client in range(int(client_min), int(client_max) + 1):
@@ -251,18 +249,19 @@ def main():
         pool.wait_completion()
 
         # Collect the results
-        client_list = []
-        for (client, success, status) in results:
-            if success:
-                client_list.append(client)
-
-        print("[*] Clients found potentially available: %s" % ','.join(client_list))
+        client_list = [client for client, success, status in results if success]
+        print(f"[*] Clients found potentially available: {','.join(client_list)}")
     else:
-        print("[*] Not discovering clients, using %s or client supplied in credentials file" % options.client)
+        print(
+            f"[*] Not discovering clients, using {options.client} or client supplied in credentials file"
+        )
+
         client_list = options.client.split(',')
 
     # Check if we should test for passwords or finish only with the discovery
-    if not options.credentials and not(options.usernames and options.passwords):
+    if not options.credentials and (
+        not options.usernames or not options.passwords
+    ):
         print("[*] Not testing passwords as credentials or usernames/passwords files were not provided")
         exit(0)
 
@@ -272,7 +271,7 @@ def main():
     if options.credentials:
         try:
             with open(options.credentials) as creds_file:
-                for line in creds_file.readlines():
+                for line in creds_file:
                     line = line.strip()
 
                     # Check for comments or empty lines
@@ -280,13 +279,8 @@ def main():
                         continue
 
                     (username, password, clients) = line.split(':')
-                    if clients == "*":
-                        clients = client_list
-                    else:
-                        clients = clients.split(',')
-
-                    for client in clients:
-                        testcases.append((username, password, client))
+                    clients = client_list if clients == "*" else clients.split(',')
+                    testcases.extend((username, password, client) for client in clients)
         except IOError:
             print("Error reading credentials file !")
             exit(0)
@@ -296,18 +290,17 @@ def main():
     else:
         try:
             with open(options.usernames) as usernames_file, open(options.passwords) as passwords_file:
-                for username in usernames_file.readlines():
+                for username in usernames_file:
                     username = username.strip()
                     # Check for comments or empty lines
                     if len(username) == 0 or username.startswith("#"):
                         continue
-                    for password in passwords_file.readlines():
+                    for password in passwords_file:
                         password = password.strip()
                         # Check for comments or empty lines
                         if len(password) == 0 or password.startswith("#"):
                             continue
-                        for client in client_list:
-                            testcases.append((username, password, client))
+                        testcases.extend((username, password, client) for client in client_list)
         except IOError:
             print("Error reading username or passwords file !")
             exit(0)
@@ -316,7 +309,10 @@ def main():
     results = []
     for username, password, client in testcases:
         if options.verbose:
-            print("[*] Adding testcase for username %s with password %s on client %s" % (username, password, client))
+            print(
+                f"[*] Adding testcase for username {username} with password {password} on client {client}"
+            )
+
         pool.add_task(login, options.remote_host, options.remote_port,
                       options.terminal, options.route_string, username,
                       password, client, options.verbose, results)

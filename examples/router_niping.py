@@ -69,7 +69,7 @@ def parse_options():
     if not options.server and not options.client:
         parser.error("Running mode is required")
 
-    if options.client and not (options.host or options.route_string):
+    if options.client and not options.host and not options.route_string:
         parser.error("Remote host is required for starting a client")
 
     return options
@@ -91,7 +91,7 @@ def client_mode(options):
                                                   options.port,
                                                   options.route_string)
         logging.info("")
-        logging.info(datetime.today().ctime())
+        logging.info(datetime.now().ctime())
         logging.info("connect to server o.k.")
 
         # Send the messages
@@ -104,7 +104,7 @@ def client_mode(options):
 
             # Check the response
             if str(r.payload) != str(p):
-                logging.info("[-] Response on message {} differs".format(i))
+                logging.info(f"[-] Response on message {i} differs")
 
             # Calculate and record the elapsed time
             times.append(end_time - start_time)
@@ -120,8 +120,11 @@ def client_mode(options):
 
     if times:
         logging.info("")
-        logging.info(datetime.today().ctime())
-        logging.info("send and receive {} messages (len {})".format(len(times), options.buffer_size))
+        logging.info(datetime.now().ctime())
+        logging.info(
+            f"send and receive {len(times)} messages (len {options.buffer_size})"
+        )
+
 
         # Calculate the stats
         times = [x.total_seconds() * 1000 for x in times]
@@ -163,7 +166,7 @@ def server_mode(options):
         sock.bind((options.host, options.port))
         sock.listen(0)
         logging.info("")
-        logging.info(datetime.today().ctime())
+        logging.info(datetime.now().ctime())
         logging.info("ready for connect from client ...")
 
         while True:
@@ -171,8 +174,11 @@ def server_mode(options):
             client = SAPNIStreamSocket(sc)
 
             logging.info("")
-            logging.info(datetime.today().ctime())
-            logging.info("connect from host '{}', client hdl {} o.k.".format(sockname[0], client.fileno()))
+            logging.info(datetime.now().ctime())
+            logging.info(
+                f"connect from host '{sockname[0]}', client hdl {client.fileno()} o.k."
+            )
+
 
             try:
                 while True:
@@ -184,8 +190,8 @@ def server_mode(options):
 
             finally:
                 logging.info("")
-                logging.info(datetime.today().ctime())
-                logging.info("client hdl {} disconnected ...".format(client.fileno()))
+                logging.info(datetime.now().ctime())
+                logging.info(f"client hdl {client.fileno()} disconnected ...")
 
     except SocketError:
         logging.error("[*] Connection error")
@@ -201,9 +207,7 @@ def server_mode(options):
 def main():
     options = parse_options()
 
-    level = logging.INFO
-    if options.verbose:
-        level = logging.DEBUG
+    level = logging.DEBUG if options.verbose else logging.INFO
     logging.basicConfig(level=level, format='%(message)s')
 
     if options.buffer_size < 10:

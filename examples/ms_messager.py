@@ -97,13 +97,13 @@ def main():
     print("[*] Sending login packet")
     response = conn.sr(p)[SAPMS]
 
-    print("[*] Login performed, server string: %s" % response.fromname)
+    print(f"[*] Login performed, server string: {response.fromname}")
 
     # Sends a message to another client
     p = SAPMS(flag=0x02, iflag=0x01, domain=domain, toname=options.target, fromname=client_string, opcode=1)
     p /= Raw(options.message)
 
-    print("[*] Sending packet to: %s" % options.target)
+    print(f"[*] Sending packet to: {options.target}")
     conn.send(p)
 
 

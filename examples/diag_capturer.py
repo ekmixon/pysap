@@ -75,11 +75,8 @@ class DiagParser(object):
         streams = {}
         for key, value in list(self.packets_metadata.items()):
             value.sort()
-            value = list(value for value, _ in itertools.groupby(value))
-            streams[key] = ''
-            for pkts in sorted(value):
-                streams[key] += pkts[1]
-
+            value = [value for value, _ in itertools.groupby(value)]
+            streams[key] = ''.join(pkts[1] for pkts in sorted(value))
         # Parse the NI packets in each stream
         packets = {}
         for key, stream in list(streams.items()):
@@ -97,27 +94,26 @@ class DiagParser(object):
                 self.parse_fields(packet)
 
     def parse_fields(self, pkt):
-        if SAPDiag in pkt and pkt[SAPDiag].message:
-            atoms = pkt[SAPDiag].get_item(["APPL", "APPL4"], "DYNT", "DYNT_ATOM")
-            # Print the Atom items information
-            if atoms:
-                print("[*] Input fields:")
-                for atom in [atom for atom_item in atoms for atom in atom_item.item_value.items]:
-                    if atom.etype in [121, 122, 123, 130, 131, 132]:
-                        text = atom.field1_text or atom.field2_text
-                        text = text.strip()
-                        if "@\Q" in text:
-                            parts = text.split("@")
-                            try:
-                                text = "%s (hint: %s)" % (parts[2], parts[1])
-                            except IndexError:
-                                pass
-                        if atom.attr_DIAG_BSD_INVISIBLE and len(text) > 0:
-                            # If the invisible flag was set, we're probably
-                            # dealing with a password field
-                            print("[*]\tPassword field:\t%s" % text)
-                        else:
-                            print("[*]\tRegular field:\t%s" % text)
+        if SAPDiag not in pkt or not pkt[SAPDiag].message:
+            return
+        if atoms := pkt[SAPDiag].get_item(["APPL", "APPL4"], "DYNT", "DYNT_ATOM"):
+            print("[*] Input fields:")
+            for atom in [atom for atom_item in atoms for atom in atom_item.item_value.items]:
+                if atom.etype in [121, 122, 123, 130, 131, 132]:
+                    text = atom.field1_text or atom.field2_text
+                    text = text.strip()
+                    if "@\Q" in text:
+                        parts = text.split("@")
+                        try:
+                            text = f"{parts[2]} (hint: {parts[1]})"
+                        except IndexError:
+                            pass
+                    if atom.attr_DIAG_BSD_INVISIBLE and len(text) > 0:
+                        # If the invisible flag was set, we're probably
+                        # dealing with a password field
+                        print("[*]\tPassword field:\t%s" % text)
+                    else:
+                        print("[*]\tRegular field:\t%s" % text)
 
 
 # Command line options parser
@@ -138,9 +134,7 @@ def parse_options():
     misc = parser.add_argument_group("Misc options")
     misc.add_argument("-v", "--verbose", dest="verbose", action="store_true", help="Verbose output")
 
-    options = parser.parse_args()
-
-    return options
+    return parser.parse_args()
 
 
 # Main function
@@ -163,13 +157,13 @@ def main():
         return
 
     if options.pcap:
-        print("[*] Parsing pcap file (%s)" % options.pcap)
+        print(f"[*] Parsing pcap file ({options.pcap})")
     else:
         if options.interface not in get_if_list():
             print("[*] Invalid interface '%s'" % options.interface)
             print_interfaces()
             return
-        print("[*] Listening on interface (%s)" % options.interface)
+        print(f"[*] Listening on interface ({options.interface})")
 
     try:
         sniff(iface=options.interface, offline=options.pcap, prn=parser.parse_packet, store=0)

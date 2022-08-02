@@ -129,14 +129,14 @@ class SAPIGSTable(Packet):
         :return: SAP IGS Table
         :rtype: :class:`SAPIGSTable`
         """
-        NewEntry = SAPIGSTable(table_name=format(t_name, ">43"),
-                               table_line=format(t_line, ">43"),
-                               table_width=format(t_width, ">43"),
-                               table_column=format(t_column, ">43"),
-                               column_name=format(c_name, ">43"),
-                               column_width=format(c_width, ">43")
-                               )
-        return NewEntry
+        return SAPIGSTable(
+            table_name=format(t_name, ">43"),
+            table_line=format(t_line, ">43"),
+            table_width=format(t_width, ">43"),
+            table_column=format(t_column, ">43"),
+            column_name=format(c_name, ">43"),
+            column_width=format(c_width, ">43"),
+        )
 
 
 class SAPIGS(Packet):
@@ -201,13 +201,11 @@ class SAPIGS(Packet):
         req = Request(method, url, files=files).prepare()
         # update User-Agent header
         req.headers['User-Agent'] = 'pysap'
-        # format the request than could be send with SAP NI
-        req_format = ('{}\r\n{}\r\n\r\n{}'.format(
-                    req.method + ' ' + req.url + ' HTTP/1.1',
-                    '\r\n'.join('{}: {}'.format(k, v) for k, v in req.headers.items()),
-                    req.body)
-                 )
-        return req_format
+        return '{}\r\n{}\r\n\r\n{}'.format(
+            f'{req.method} {req.url} HTTP/1.1',
+            '\r\n'.join(f'{k}: {v}' for k, v in req.headers.items()),
+            req.body,
+        )
 
 
 # Bind SAP NI with the IGS ports

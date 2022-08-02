@@ -86,10 +86,7 @@ class SAPDiagConnection(object):
         self.terminal = terminal or self.get_terminal_name()
         self.route = route
         self.support_data = self.get_support_data_item(support_data) or default_support_data
-        if compress is True:
-            self.compress = 1
-        else:
-            self.compress = 0
+        self.compress = 1 if compress is True else 0
         self._connection = None
         if init:
             self.init()
@@ -124,10 +121,7 @@ class SAPDiagConnection(object):
                                        item_sid="SUPPORTDATA",
                                        item_value=support_data)
 
-        if isinstance(support_data, SAPDiagItem):
-            return support_data
-
-        return None
+        return support_data if isinstance(support_data, SAPDiagItem) else None
 
     def init(self):
         """Sends an initialization request. If the socket wasn't created,
@@ -171,11 +165,10 @@ class SAPDiagConnection(object):
         :return: packet received
         :rtype: :class:`SAPNI<SAPNI.SAPNI>`
         """
-        if self._connection is not None:
-            self.last_response = self._connection.recv()
-            return self.last_response
-        else:
+        if self._connection is None:
             return None
+        self.last_response = self._connection.recv()
+        return self.last_response
 
     def sr(self, packet):
         """Sends and receive a :class:`SAPNI<SAPNI.SAPNI>` packet using the :class:`SAPNIStreamSocket`

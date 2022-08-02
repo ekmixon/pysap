@@ -326,7 +326,7 @@ class PySAPNIProxyTest(PySAPBaseServerTest):
         sock.connect((self.test_address, self.test_proxyport))
         sock.sendall(pack("!I", len(self.test_string)) + self.test_string)
 
-        expected_reponse = self.test_string + "Client" + "Server"
+        expected_reponse = f"{self.test_string}ClientServer"
 
         response = sock.recv(4)
         self.assertEqual(len(response), 4)

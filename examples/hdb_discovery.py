@@ -88,9 +88,7 @@ def parse_options():
 def main():
     options = parse_options()
 
-    level = logging.INFO
-    if options.verbose:
-        level = logging.DEBUG
+    level = logging.DEBUG if options.verbose else logging.INFO
     logging.basicConfig(level=level, format='%(message)s')
 
     # Build the list of tenants to try
@@ -105,16 +103,19 @@ def main():
     kwargs = {"route": options.route_string}
     if options.tls:
         connection_class = SAPHDBTLSConnection
-        kwargs.update({"tls_cert_trust": options.tls_cert_trust,
-                       "tls_cert_file": options.tls_cert_file,
-                       "tls_check_hostname": options.tls_check_hostname})
+        kwargs |= {
+            "tls_cert_trust": options.tls_cert_trust,
+            "tls_cert_file": options.tls_cert_file,
+            "tls_check_hostname": options.tls_check_hostname,
+        }
+
 
     results = {}
     try:
         for tenant in tenants:
             results[tenant] = {"Database": tenant}
 
-            logging.info("[*] Discovering tenant '{}'".format(tenant))
+            logging.info(f"[*] Discovering tenant '{tenant}'")
             try:
 
                 hdb = connection_class(options.remote_host,
@@ -148,7 +149,7 @@ def main():
                     value = hdb_get_part_kind_option(hdb_dbconnectinfo_response_part, key)
                     if value is not None:
                         results[tenant][name] = value
-                    logging.debug("[*]\t{}:\t{}".format(name, value))
+                    logging.debug(f"[*]\t{name}:\t{value}")
 
                 # Is Connected?
                 if hdb_get_part_kind_option(hdb_dbconnectinfo_response_part, 4):
@@ -162,17 +163,14 @@ def main():
             except SocketError:
                 logging.error("[-] Tenant '%s' doesn't exist" % tenant)
             except SAPHDBConnectionError as e:
-                logging.error("[-] Connection error: %s" % e.message)
+                logging.error(f"[-] Connection error: {e.message}")
 
     except KeyboardInterrupt:
         logging.info("[-] Connection canceled")
 
     # Write the output of the discovery
     if options.output:
-        if options.output == "-":
-            fd = stdout
-        else:
-            fd = open(options.output, "w")
+        fd = stdout if options.output == "-" else open(options.output, "w")
         dump(results, fd, indent=2)
         fd.close()
 

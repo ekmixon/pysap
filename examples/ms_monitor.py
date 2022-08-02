@@ -76,14 +76,13 @@ class SAPMSMonitorConsole(BaseConsole):
 
         p = self._build(flag, iflag, **args)
 
-        self._debug("Sending %spacket" % opcode_name)
+        self._debug(f"Sending {opcode_name}packet")
         response = self.connection.sr(p)[SAPMS]
 
-        if response.opcode_error != 0:
-            self._print("Error: %s" % ms_opcode_error_values[response.opcode_error])
-            return None
-        else:
+        if response.opcode_error == 0:
             return response
+        self._print(f"Error: {ms_opcode_error_values[response.opcode_error]}")
+        return None
 
     # SAP MS Monitor commands
 
@@ -114,15 +113,14 @@ class SAPMSMonitorConsole(BaseConsole):
 
         if response.errorno == 0:
             self.runtimeoptions["server_string"] = response.fromname.strip() + "\x00"
-            self._debug("Login performed, server string: %s" % response.fromname)
+            self._debug(f"Login performed, server string: {response.fromname}")
             self._print("pysap's Message Server monitor, connected to %s / %d" % (self.options.remote_host,
                                                                                   self.options.remote_port))
             self.connected = True
+        elif response.errorno in ms_errorno_values:
+            self._error(f"Error performing login: {ms_errorno_values[response.errorno]}")
         else:
-            if response.errorno in ms_errorno_values:
-                self._error("Error performing login: %s" % ms_errorno_values[response.errorno])
-            else:
-                self._error("Unknown error performing login: %d" % response.errorno)
+            self._error("Unknown error performing login: %d" % response.errorno)
 
     def do_disconnect(self, args):
         """ Disconnects from the Message Server service. """
@@ -167,8 +165,7 @@ class SAPMSMonitorConsole(BaseConsole):
         # Print clients table
         table = [["#", "Client Name", "Host", "Service", "IPv4", "IPv6", "ServNo", "State", "Services"]]
         instance = self.runtimeoptions["server_string"]
-        i = 0
-        for client in response.clients:
+        for i, client in enumerate(response.clients):
             if client.status == 1:
                 instance = client.client
             table.append([str(i),
@@ -179,27 +176,26 @@ class SAPMSMonitorConsole(BaseConsole):
                           client.hostaddrv6 if "hostaddrv6" in client.fields else None,
                           str(client.servno),
                           ms_client_status_values[client.status]])
-            i += 1
         self._tabulate(table)
 
         # Store clients for further use
         self.clients = response.clients
 
-        self._debug("Server instance: %s" % instance)
+        self._debug(f"Server instance: {instance}")
         self.runtimeoptions["instance"] = instance
 
     def do_hardware_id(self, args):
         """ Retrieve the installation's hardware ID. """
-        response = self._send_simple(0x02, 0x01, opcode=0x0a)
-        if response:
-            self._print("Hardware ID: %s" % response.hwid)
+        if response := self._send_simple(0x02, 0x01, opcode=0x0A):
+            self._print(f"Hardware ID: {response.hwid}")
 
     def do_get_security_by_name(self, args):
         """ Get Security Key by name. """
-        response = self._send_simple(0x02, 0x01, opcode=0x08, security_name=args)
-        if response:
-            self._print("Security Name: %s" % response.security_name)
-            self._print("Security Key: %s" % response.security_key)
+        if response := self._send_simple(
+            0x02, 0x01, opcode=0x08, security_name=args
+        ):
+            self._print(f"Security Name: {response.security_name}")
+            self._print(f"Security Key: {response.security_key}")
 
     def do_get_security_by_ip(self, args):
         """ Get Security Key by ip/port. Options <IPv4 address> <port> """
@@ -211,13 +207,13 @@ class SAPMSMonitorConsole(BaseConsole):
             self._error("Wrong parameters !")
             return
 
-        # Send MS_GET_SECURITY
-        response = self._send_simple(0x02, 0x01, opcode=0x09, security2_addressv4=ip, security2_port=port)
-        if response:
-            self._print("Security IPv4 Address: %s" % response.security2_addressv4)
-            self._print("Security Port: %s" % response.security2_port)
-            self._print("Security Key: %s" % response.security2_key)
-            self._print("Security IPv6 Address: %s" % response.security2_addressv6)
+        if response := self._send_simple(
+            0x02, 0x01, opcode=0x09, security2_addressv4=ip, security2_port=port
+        ):
+            self._print(f"Security IPv4 Address: {response.security2_addressv4}")
+            self._print(f"Security Port: {response.security2_port}")
+            self._print(f"Security Key: {response.security2_key}")
+            self._print(f"Security IPv6 Address: {response.security2_addressv6}")
 
     def do_dump(self, args):
         """ Dump information. Options [<dump command> | all] """
@@ -279,91 +275,67 @@ class SAPMSMonitorConsole(BaseConsole):
     def do_trace_increase(self, args):
         """ Increase server's trace level. """
 
-        # Send MS_INCRE_TRACE
-        response = self._send_simple(0x02, 0x01, opcode=0x0b)
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x0B):
             self._print("Trace increased")
 
     def do_trace_decrease(self, args):
         """ Decrease server's trace level. """
 
-        # Send MS_DECRE_TRACE
-        response = self._send_simple(0x02, 0x01, opcode=0x0c)
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x0C):
             self._print("Trace decreased")
 
     def do_trace_reset(self, args):
         """ Reset server's trace level. """
 
-        # Send MS_RESET_TRACE
-        response = self._send_simple(0x02, 0x01, opcode=0x0d)
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x0D):
             self._print("Trace reset")
 
     def do_statistics_activate(self, args):
         """ Activates server's statistics. """
 
-        # Send MS_ACT_STATISTIC
-        response = self._send_simple(0x02, 0x01, opcode=0x0e)
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x0E):
             self._print("Statistics activated")
 
     def do_statistics_deactivate(self, args):
         """ Deactivates server's statistics. """
 
-        # Send MS_DEACT_STATISTIC
-        response = self._send_simple(0x02, 0x01, opcode=0x0f)
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x0F):
             self._print("Statistics deactivated")
 
     def do_statistics_reset(self, args):
         """ Reset server's statistics. """
 
-        # Send MS_RESET_STATISTIC
-        response = self._send_simple(0x02, 0x01, opcode=0x10)
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x10):
             self._print("Statistics reset")
 
     def do_statistics_get(self, args):
         """ Get server's statistics. """
 
-        # Send MS_GET_STATISTIC
-        response = self._send_simple(0x02, 0x01, opcode=0x11)
-        # TODO: Statistics fields are not correctly defined, just showing the
-        # complete packet now
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x11):
             response.show()
 
     def do_network_buffer_dump(self, args):
         """ Dump network buffer. """
 
-        # Send MS_DUMP_NIBUFFER
-        response = self._send_simple(0x02, 0x01, opcode=0x12)
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x12):
             self._print("Network buffer dumped")
 
     def do_network_buffer_reset(self, args):
         """ Reset network buffer. """
 
-        # Send MS_RESET_NIBUFFER
-        response = self._send_simple(0x02, 0x01, opcode=0x13)
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x13):
             self._print("Network buffer reset")
 
     def do_get_codepage(self, args):
         """ Get code page. """
 
-        # Send MS_GET_CODEPAGE
-        response = self._send_simple(0x02, 0x01, opcode=0x1c)
-        if response:
-            self._print("Codepage: %s" % response.codepage)
+        if response := self._send_simple(0x02, 0x01, opcode=0x1C):
+            self._print(f"Codepage: {response.codepage}")
 
     def do_counter_list(self, args):
         """ List Counters. """
 
-        # Send MS_COUNTER_LST
-        response = self._send_simple(0x02, 0x01, opcode=0x2a)
-        if response:
+        if response := self._send_simple(0x02, 0x01, opcode=0x2A):
             self._print("Counters:\n%s" % response.counters)
 
     def _counter_opcodes(self, counter, opcode, count=0, number=0):
@@ -426,11 +398,9 @@ class SAPMSMonitorConsole(BaseConsole):
             self.do_client_list(None)
             return
 
-        # Send MS_SERVER_DISC packet
-        response = self._send_simple(0x02, 0x01, opcode=0x2e,
-                                     shutdown_client=client,
-                                     shutdown_reason=reason)
-        if response:
+        if response := self._send_simple(
+            0x02, 0x01, opcode=0x2E, shutdown_client=client, shutdown_reason=reason
+        ):
             self._print("Disconnected from server")
 
     def do_server_shutdown(self, args):
@@ -445,11 +415,9 @@ class SAPMSMonitorConsole(BaseConsole):
             self.do_client_list(None)
             return
 
-        # Send MS_SERVER_SHUTDOWN packet
-        response = self._send_simple(0x02, 0x01, opcode=0x2f,
-                                     shutdown_client=client,
-                                     shutdown_reason=reason)
-        if response:
+        if response := self._send_simple(
+            0x02, 0x01, opcode=0x2F, shutdown_client=client, shutdown_reason=reason
+        ):
             self._print("Server shutdown")
 
     def do_server_soft_shutdown(self, args):
@@ -464,11 +432,9 @@ class SAPMSMonitorConsole(BaseConsole):
             self.do_client_list(None)
             return
 
-        # Send MS_SERVER_SOFT_SHUTDOWN packet
-        response = self._send_simple(0x02, 0x01, opcode=0x30,
-                                     shutdown_client=client,
-                                     shutdown_reason=reason)
-        if response:
+        if response := self._send_simple(
+            0x02, 0x01, opcode=0x30, shutdown_client=client, shutdown_reason=reason
+        ):
             self._print("Server soft shutdown")
 
     def do_property_get(self, args):
@@ -485,11 +451,11 @@ class SAPMSMonitorConsole(BaseConsole):
         # Send MS_GET_PROPERTY packet
         prop = SAPMSProperty(client=prop_client.client,
                              id=prop_id)
-        response = self._send_simple(0x02, 0x01, opcode=0x44,
-                                     property=prop)
-        if response:
-            self._print("Property %s for client %s:" % (ms_property_id_values[prop_id],
-                                                        prop_client.client.strip()))
+        if response := self._send_simple(0x02, 0x01, opcode=0x44, property=prop):
+            self._print(
+                f"Property {ms_property_id_values[prop_id]} for client {prop_client.client.strip()}:"
+            )
+
             response.property.show()
 
     def do_parameter_get(self, args):
@@ -501,10 +467,8 @@ class SAPMSMonitorConsole(BaseConsole):
         adm = SAPMSAdmRecord(opcode=0x1, parameter=parameter_name)
         p = self._build(0x04, 0x05, adm_records=[adm])
 
-        response = self.connection.sr(p)[SAPMS]
-
-        if response:
-            self._print("Parameter value: %s" % response.adm_records[0].parameter)
+        if response := self.connection.sr(p)[SAPMS]:
+            self._print(f"Parameter value: {response.adm_records[0].parameter}")
 
     def do_parameter_set(self, args):
         """ Set parameter value (requires monitor mode enabled).
@@ -517,31 +481,29 @@ class SAPMSMonitorConsole(BaseConsole):
             return
 
         # Send ADM AD_SHARED_PARAMETER request
-        adm = SAPMSAdmRecord(opcode=0x2e,
-                             parameter="%s=%s" % (parameter_name,
-                                                  parameter_value))
+        adm = SAPMSAdmRecord(
+            opcode=0x2E, parameter=f"{parameter_name}={parameter_value}"
+        )
+
         p = self._build(0x04, 0x05, adm_records=[adm])
 
-        response = self.connection.sr(p)[SAPMS]
-
-        if response:
+        if response := self.connection.sr(p)[SAPMS]:
             if response.adm_records[0].errorno != 0:
                 self._error("Error changing the parameter !")
             else:
-                self._print("Parameter %s set to %s !" % (parameter_name,
-                                                          parameter_value))
+                self._print(f"Parameter {parameter_name} set to {parameter_value} !")
 
     def do_check_acl(self, args):
         """ Set parameter value (requires monitor mode enabled).
             Options: <parameter name> <parameter value> """
 
-        response = self._send_simple(0x02, 0x01, opcode=71, opcode_version=1, opcode_charset=0)[SAPMS]
-
-        if response:
+        if response := self._send_simple(
+            0x02, 0x01, opcode=71, opcode_version=1, opcode_charset=0
+        )[SAPMS]:
             if response.error_code:
                 self._error("Error checking ACL, code %d" % response.error_code)
             else:
-                self._print("ACL: %s" % response.acl)
+                self._print(f"ACL: {response.acl}")
 
 
 # Command line options parser

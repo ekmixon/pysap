@@ -59,7 +59,7 @@ def main():
 
     # Fill missing bits
     unknown_no = unused_no = 1
-    for bit in range(0, max(data.keys()) + 1):
+    for bit in range(max(data.keys()) + 1):
         if bit in data:
             name = data[bit].replace(' ', '_')
             if name == "UNUSED":

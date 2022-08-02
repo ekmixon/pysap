@@ -89,15 +89,17 @@ class SAPEnqueueAdminConsole(BaseConsole):
 
         # Walk over the server's parameters
         for param in response.params:
-            self._debug("Server parameter: %s=%s" % (enqueue_param_values[param.param],
-                                                     param.value if param.param not in [0x03] else param.set_name))
+            self._debug(
+                f"Server parameter: {enqueue_param_values[param.param]}={param.value if param.param not in [0x03] else param.set_name}"
+            )
+
             # Save server version and name as runtime options
             if param.param == 0x03:
                 self.runtimeoptions["server_name"] = param.set_name
             if param.param == 0x05:
                 self.runtimeoptions["server_version"] = param.value
 
-        self._print("Server name: %s" % self.runtimeoptions["server_name"])
+        self._print(f'Server name: {self.runtimeoptions["server_name"]}')
         self._print("Server version: %d" % self.runtimeoptions["server_version"])
         self.connected = True
 

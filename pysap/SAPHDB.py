@@ -325,10 +325,14 @@ def hdb_get_part_kind_option(part, key):
 
     :return: value from the Option Part kind
     """
-    for option in part.buffer:
-        if hasattr(option, "key") and option.key == key:
-            return option.value
-    return None
+    return next(
+        (
+            option.value
+            for option in part.buffer
+            if hasattr(option, "key") and option.key == key
+        ),
+        None,
+    )
 
 
 class SAPHDBOptionPartRow(PacketNoPadded):
@@ -1271,7 +1275,7 @@ class SAPHDBConnection(object):
         """
         pid = self.pid
         hostname = self.hostname
-        return "{}@{}".format(pid, hostname)
+        return f"{pid}@{hostname}"
 
     def craft_client_context_part(self):
         """Crafts the client context part that is sent to the server. It contains the
@@ -1299,7 +1303,7 @@ class SAPHDBConnection(object):
                                                                      base_cls=SAPHDB,
                                                                      talk_mode=1)
         except socket.error as e:
-            raise SAPHDBConnectionError("Error connecting to the server (%s)" % e)
+            raise SAPHDBConnectionError(f"Error connecting to the server ({e})")
 
     def is_connected(self):
         """Returns if the underlying socket is connected.
@@ -1414,11 +1418,14 @@ class SAPHDBConnection(object):
             # Send disconnect packet and check the response
             disconnect_response = self.sr(disconnect_request)
             if not hdb_segment_is_reply(disconnect_response.segments[0]) or \
-               disconnect_response.segments[0].functioncode != 18:
+                   disconnect_response.segments[0].functioncode != 18:
                 raise SAPHDBConnectionError("Connection incorrectly closed")
 
         except socket.error as e:
-            raise SAPHDBConnectionError("Error closing the connection to the server (%s)" % e)
+            raise SAPHDBConnectionError(
+                f"Error closing the connection to the server ({e})"
+            )
+
 
         finally:
             self.close_socket()
